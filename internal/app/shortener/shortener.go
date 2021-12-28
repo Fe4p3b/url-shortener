@@ -1,22 +1,20 @@
 package shortener
 
-import "github.com/lithammer/shortuuid"
+import (
+	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/lithammer/shortuuid"
+)
 
 type ShortenerService interface {
 	Find(string) (string, error)
 	Store(string) (string, error)
 }
 
-type ShortenerRepository interface {
-	Find(string) (string, error)
-	Save(string, string) error
-}
-
 type shortener struct {
-	r ShortenerRepository
+	r repositories.ShortenerRepository
 }
 
-func New(r ShortenerRepository) *shortener {
+func New(r repositories.ShortenerRepository) *shortener {
 	return &shortener{
 		r: r,
 	}

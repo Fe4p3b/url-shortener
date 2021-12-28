@@ -10,10 +10,9 @@ import (
 )
 
 func main() {
-	m := memory.New()
+	m := memory.New(map[string]string{})
 	s := shortener.New(m)
-	h := handlers.NewHttpHandler(s)
-	_ = h
+	_ = handlers.NewHttpHandler(s)
 	server := server.New(":8080", nil)
 
 	log.Fatal(server.Start())
