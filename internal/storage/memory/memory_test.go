@@ -2,6 +2,8 @@ package memory
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_memory_Find(t *testing.T) {
@@ -37,9 +39,7 @@ func Test_memory_Find(t *testing.T) {
 				t.Errorf("Find() error = %v, wantErr = %v", err, tt.wantErr)
 			}
 
-			if got != tt.want {
-				t.Errorf("Find() got = %v, want = %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -2,7 +2,7 @@ package shortener
 
 import (
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/lithammer/shortuuid"
+	"github.com/teris-io/shortid"
 )
 
 type ShortenerService interface {
@@ -25,8 +25,11 @@ func (s *shortener) Find(url string) (string, error) {
 }
 
 func (s *shortener) Store(url string) (string, error) {
-	uuid := shortuuid.New()
-	err := s.r.Save(uuid, url)
+	uuid, err := shortid.Generate()
+	if err != nil {
+		return "", err
+	}
+	err = s.r.Save(uuid, url)
 	if err != nil {
 		return "", err
 	}

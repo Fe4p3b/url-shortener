@@ -16,6 +16,5 @@ func New(addr string, h http.Handler) *Server {
 }
 
 func (s *Server) Start() error {
-	err := s.srv.ListenAndServe()
-	return err
+	return s.srv.ListenAndServe()
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_shortener_Find(t *testing.T) {
@@ -54,9 +55,8 @@ func Test_shortener_Find(t *testing.T) {
 				t.Errorf("shortener.Find() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("shortener.Find() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -85,22 +85,6 @@ func Test_shortener_Store(t *testing.T) {
 			urls:    []string{"google.com", "yandex.ru", "yahoo.com", "google.com", "yandex.ru", "yahoo.com"},
 			wantErr: false,
 		},
-		// {
-		// 	name: "test case #2",
-		// 	fields: fields{
-		// 		r: storage,
-		// 	},
-		// 	urls:    []string{"google.com"},
-		// 	wantErr: true,
-		// },
-		// {
-		// 	name: "test case #2",
-		// 	fields: fields{
-		// 		r: storage,
-		// 	},
-		// 	urls:    []string{"google.com"},
-		// 	wantErr: true,
-		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

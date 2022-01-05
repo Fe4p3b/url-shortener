@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
@@ -12,8 +13,12 @@ import (
 func main() {
 	m := memory.New(map[string]string{})
 	s := shortener.New(m)
-	_ = handlers.NewHttpHandler(s)
-	server := server.New(":8080", nil)
+	h := handlers.NewHttpHandler(s)
 
-	log.Fatal(server.Start())
+	e := h.InitEchoHandler()
+
+	server := server.New(":8080", e)
+	if err := server.Start(); err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }

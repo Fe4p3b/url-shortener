@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,22 +9,25 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
+	echo "github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 )
 
-func Test_httpHandler_handler(t *testing.T) {
+func Test_httpHandler_get(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
 		method string
-		url    string
-		body   url.Values
+		params string
 	}
 	type want struct {
 		code     int
 		response string
+		err      bool
 	}
 
 	m := memory.New(map[string]string{
-		"asdf": "yandex.ru",
+		"asdf": "http://yandex.ru",
+		// "qwerty": "http://google.com",
 	})
 	s := shortener.New(m)
 
@@ -38,30 +40,26 @@ func Test_httpHandler_handler(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:      s,
-				method: http.MethodPost,
-				url:    "/",
-				body: url.Values{
-					"url": []string{"https://yandex.ru"},
-				},
+				method: http.MethodGet,
+				params: "asdf",
 			},
 			want: want{
-				code:     http.StatusCreated,
+				code:     http.StatusTemporaryRedirect,
 				response: "",
+				err:      false,
 			},
 		},
 		{
 			name: "test case #2",
 			fields: fields{
 				s:      s,
-				method: http.MethodPost,
-				url:    "/",
-				body: url.Values{
-					"url": []string{"yandex.ru"},
-				},
+				method: http.MethodGet,
+				params: "qwerty",
 			},
 			want: want{
-				code:     http.StatusInternalServerError,
-				response: "Invalid URL\n\n",
+				code:     http.StatusNotFound,
+				response: "Not Found",
+				err:      true,
 			},
 		},
 		{
@@ -69,38 +67,12 @@ func Test_httpHandler_handler(t *testing.T) {
 			fields: fields{
 				s:      s,
 				method: http.MethodGet,
-				url:    "/?url=asdf",
-				body:   nil,
+				params: "",
 			},
 			want: want{
-				code:     http.StatusTemporaryRedirect,
-				response: "<a href=\"/yandex.ru\">Temporary Redirect</a>.\n\n\n",
-			},
-		},
-		{
-			name: "test case #4",
-			fields: fields{
-				s:      s,
-				method: http.MethodGet,
-				url:    "/",
-				body:   nil,
-			},
-			want: want{
-				code:     http.StatusBadRequest,
-				response: "The query parameter is missing\n\n",
-			},
-		},
-		{
-			name: "test case #5",
-			fields: fields{
-				s:      s,
-				method: http.MethodPut,
-				url:    "/",
-				body:   nil,
-			},
-			want: want{
-				code:     http.StatusMethodNotAllowed,
-				response: "\n",
+				code:     http.StatusNotFound,
+				response: "The query parameter is missing",
+				err:      true,
 			},
 		},
 	}
@@ -109,106 +81,29 @@ func Test_httpHandler_handler(t *testing.T) {
 			httpHandler := &httpHandler{
 				s: tt.fields.s,
 			}
-			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body.Encode()))
-			if tt.fields.body != nil {
-				request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			}
+			request := httptest.NewRequest(tt.fields.method, "/", nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(httpHandler.handler)
-			h.ServeHTTP(w, request)
-			res := w.Result()
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
+
+			e := echo.New()
+			c := e.NewContext(request, w)
+
+			c.SetPath("/:url")
+			c.SetParamNames("url")
+			c.SetParamValues(tt.fields.params)
+
+			err := httpHandler.EchoGet(c)
+
+			if tt.want.err {
+				assert.Error(t, err)
+				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
+				assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
+				return
 			}
 
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.code, w.Code)
+			assert.Equal(t, tt.want.response, w.Body.String())
 
-			if string(resBody) != tt.want.response && tt.want.response != "" {
-				t.Errorf("Expected body %s, got %s => %v --- %v", tt.want.response, string(resBody), string(resBody) != tt.want.response, res.Header.Get("Content-Type"))
-			}
-		})
-	}
-}
-
-func Test_httpHandler_get(t *testing.T) {
-	type fields struct {
-		s      shortener.ShortenerService
-		method string
-		url    string
-		body   url.Values
-	}
-	type want struct {
-		code     int
-		response string
-	}
-
-	m := memory.New(map[string]string{
-		"asdf": "yandex.ru",
-	})
-	s := shortener.New(m)
-
-	tests := []struct {
-		name   string
-		fields fields
-		want   want
-	}{
-		{
-			name: "test case #1",
-			fields: fields{
-				s:      s,
-				method: http.MethodGet,
-				url:    "/?url=asdf",
-				body:   nil,
-			},
-			want: want{
-				code:     http.StatusTemporaryRedirect,
-				response: "<a href=\"/yandex.ru\">Temporary Redirect</a>.\n\n",
-			},
-		},
-		{
-			name: "test case #2",
-			fields: fields{
-				s:      s,
-				method: http.MethodGet,
-				url:    "/",
-				body:   nil,
-			},
-			want: want{
-				code:     http.StatusBadRequest,
-				response: "The query parameter is missing\n",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			httpHandler := &httpHandler{
-				s: tt.fields.s,
-			}
-			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body.Encode()))
-			if tt.fields.body != nil {
-				request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			}
-			w := httptest.NewRecorder()
-			h := http.HandlerFunc(httpHandler.get)
-			h.ServeHTTP(w, request)
-			res := w.Result()
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
-			}
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if string(resBody) != tt.want.response && tt.want.response != "" {
-				t.Errorf("Expected body %s, got %s => %v --- %v", tt.want.response, string(resBody), string(resBody) != tt.want.response, res.Header.Get("Content-Type"))
-			}
 		})
 	}
 }
@@ -218,11 +113,12 @@ func Test_httpHandler_post(t *testing.T) {
 		s      shortener.ShortenerService
 		method string
 		url    string
-		body   url.Values
+		body   string
 	}
 	type want struct {
 		code     int
 		response string
+		err      bool
 	}
 
 	m := memory.New(map[string]string{
@@ -241,13 +137,12 @@ func Test_httpHandler_post(t *testing.T) {
 				s:      s,
 				method: http.MethodPost,
 				url:    "/",
-				body: url.Values{
-					"url": []string{"https://yandex.ru"},
-				},
+				body:   "https://yandex.ru",
 			},
 			want: want{
 				code:     http.StatusCreated,
 				response: "",
+				err:      false,
 			},
 		},
 		{
@@ -256,13 +151,12 @@ func Test_httpHandler_post(t *testing.T) {
 				s:      s,
 				method: http.MethodPost,
 				url:    "/",
-				body: url.Values{
-					"url": []string{"yandex.ru"},
-				},
+				body:   "yandex.ru",
 			},
 			want: want{
-				code:     http.StatusInternalServerError,
-				response: "Invalid URL\n",
+				code:     http.StatusBadRequest,
+				response: "Invalid URL",
+				err:      true,
 			},
 		},
 	}
@@ -271,26 +165,30 @@ func Test_httpHandler_post(t *testing.T) {
 			httpHandler := &httpHandler{
 				s: tt.fields.s,
 			}
-			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body.Encode()))
-			if tt.fields.body != nil {
-				request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			}
+
+			f := make(url.Values)
+			f.Set("url", tt.fields.body)
+
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(f.Encode()))
+			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(httpHandler.post)
-			h.ServeHTTP(w, request)
-			res := w.Result()
-			if res.StatusCode != tt.want.code {
-				t.Errorf("Expected status code %d, got %d", tt.want.code, w.Code)
+
+			e := echo.New()
+			c := e.NewContext(request, w)
+
+			err := httpHandler.EchoPost(c)
+			if tt.want.err {
+				assert.Error(t, err)
+				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
+				assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
+				return
 			}
 
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if string(resBody) != tt.want.response && tt.want.response != "" {
-				t.Errorf("Expected body %s, got %s => %v --- %v", tt.want.response, string(resBody), string(resBody) != tt.want.response, res.Header.Get("Content-Type"))
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.code, w.Code)
+			if tt.want.response != "" {
+				assert.Equal(t, tt.want.response, w.Body.String())
 			}
 		})
 	}

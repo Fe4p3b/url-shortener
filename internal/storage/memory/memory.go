@@ -7,7 +7,7 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 )
 
-var noLinkFoundError = errors.New("No such link")
+var noLinkFoundError = errors.New("Not found")
 var duplicateShortlinkError = errors.New("No such link")
 var _ repositories.ShortenerRepository = &memory{}
 
