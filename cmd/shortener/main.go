@@ -15,9 +15,7 @@ func main() {
 	s := shortener.New(m)
 	h := handlers.NewHttpHandler(s)
 
-	e := h.InitEchoHandler()
-
-	server := server.New(":8080", e)
+	server := server.New(":8080", h)
 	if err := server.Start(); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

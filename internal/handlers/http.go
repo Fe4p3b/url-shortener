@@ -10,20 +10,22 @@ import (
 
 type httpHandler struct {
 	s shortener.ShortenerService
+	*echo.Echo
 }
 
 func NewHttpHandler(s shortener.ShortenerService) *httpHandler {
 	h := &httpHandler{
-		s: s,
+		s:    s,
+		Echo: echo.New(),
 	}
+	h.setupRouting()
+
 	return h
 }
 
-func (h *httpHandler) InitEchoHandler() *echo.Echo {
-	e := echo.New()
-	e.GET("/:url", h.EchoGet)
-	e.POST("/", h.EchoPost)
-	return e
+func (h *httpHandler) setupRouting() {
+	h.Echo.GET("/:url", h.EchoGet)
+	h.Echo.POST("/", h.EchoPost)
 }
 
 func (h *httpHandler) EchoGet(c echo.Context) error {
@@ -37,6 +39,8 @@ func (h *httpHandler) EchoGet(c echo.Context) error {
 		// return echo.NewHTTPError(http.StatusNotFound, err.Error())
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
+
+	// return c.String(http.StatusAccepted, url)
 	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 

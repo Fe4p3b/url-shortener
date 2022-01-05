@@ -4,14 +4,12 @@ go 1.17
 
 require (
 	github.com/labstack/echo/v4 v4.6.1
-	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/stretchr/testify v1.4.0
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
