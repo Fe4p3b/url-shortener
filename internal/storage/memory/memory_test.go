@@ -28,7 +28,7 @@ func Test_memory_Find(t *testing.T) {
 			name:    "test case #2",
 			value:   "qwer",
 			want:    "",
-			wantErr: noLinkFoundError,
+			wantErr: errorNoLinkFound,
 		},
 	}
 	for _, tt := range tests {
@@ -75,7 +75,7 @@ func Test_memory_Save(t *testing.T) {
 				url:   "yahoo.com",
 				short: "asdf",
 			},
-			wantErr: duplicateShortlinkError,
+			wantErr: errorDuplicateShortlink,
 		},
 	}
 	for _, tt := range tests {

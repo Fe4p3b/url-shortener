@@ -154,9 +154,9 @@ func Test_httpHandler_post(t *testing.T) {
 				body:   "yandex.ru",
 			},
 			want: want{
-				code:     http.StatusBadRequest,
-				response: "Invalid URL",
-				err:      true,
+				code:     http.StatusCreated,
+				response: "",
+				err:      false,
 			},
 		},
 	}

@@ -13,7 +13,7 @@ import (
 func main() {
 	m := memory.New(map[string]string{})
 	s := shortener.New(m)
-	h := handlers.NewHttpHandler(s)
+	h := handlers.NewHTTPHandler(s)
 
 	server := server.New(":8080", h)
 	if err := server.Start(); err != http.ErrServerClosed {

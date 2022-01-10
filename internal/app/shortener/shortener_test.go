@@ -22,7 +22,7 @@ func Test_shortener_Find(t *testing.T) {
 	tests := []struct {
 		name     string
 		fields   fields
-		shortUrl string
+		shortURL string
 		want     string
 		wantErr  bool
 	}{
@@ -31,7 +31,7 @@ func Test_shortener_Find(t *testing.T) {
 			fields: fields{
 				r: storage,
 			},
-			shortUrl: "asdf",
+			shortURL: "asdf",
 			want:     "yandex.ru",
 			wantErr:  false,
 		},
@@ -40,7 +40,7 @@ func Test_shortener_Find(t *testing.T) {
 			fields: fields{
 				r: storage,
 			},
-			shortUrl: "qwerty",
+			shortURL: "qwerty",
 			want:     "",
 			wantErr:  true,
 		},
@@ -50,7 +50,7 @@ func Test_shortener_Find(t *testing.T) {
 			s := &shortener{
 				r: tt.fields.r,
 			}
-			got, err := s.Find(tt.shortUrl)
+			got, err := s.Find(tt.shortURL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("shortener.Find() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -91,17 +91,17 @@ func Test_shortener_Store(t *testing.T) {
 			s := &shortener{
 				r: tt.fields.r,
 			}
-			shortUrls := make(map[string]int)
+			shortURLs := make(map[string]int)
 			for _, v := range tt.urls {
 				got, err := s.Store(v)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("shortener.Store() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				shortUrls[got]++
+				shortURLs[got]++
 			}
-			t.Log(shortUrls)
-			for k, v := range shortUrls {
+			t.Log(shortURLs)
+			for k, v := range shortURLs {
 				if v > 1 {
 					t.Errorf("shortener.Store() duplicate short urls generated %v, in %v", k, s.r)
 					return

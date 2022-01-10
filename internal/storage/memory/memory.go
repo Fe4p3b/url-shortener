@@ -7,8 +7,8 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 )
 
-var noLinkFoundError = errors.New("Not found")
-var duplicateShortlinkError = errors.New("No such link")
+var errorNoLinkFound = errors.New("not found")
+var errorDuplicateShortlink = errors.New("no such link")
 var _ repositories.ShortenerRepository = &memory{}
 
 type memory struct {
@@ -25,14 +25,14 @@ func New(s map[string]string) *memory {
 func (m *memory) Find(url string) (s string, err error) {
 	v, ok := m.S[url]
 	if !ok {
-		return "", noLinkFoundError
+		return "", errorNoLinkFound
 	}
 	return v, nil
 }
 
 func (m *memory) Save(uuid string, url string) error {
 	if _, ok := m.S[uuid]; ok {
-		return duplicateShortlinkError
+		return errorDuplicateShortlink
 	}
 
 	m.Lock()
