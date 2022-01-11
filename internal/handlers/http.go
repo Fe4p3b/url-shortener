@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/labstack/echo/v4"
@@ -40,11 +41,17 @@ func (h *httpHandler) EchoGet(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
 
-	return c.Redirect(http.StatusTemporaryRedirect, url)
+	c.Response().Header().Set("Location", url)
+	c.Response().WriteHeader(http.StatusTemporaryRedirect)
+	return nil
 }
 
 func (h *httpHandler) EchoPost(c echo.Context) error {
 	u := c.FormValue("url")
+	_, err := url.Parse(u)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusInternalServerError))
+	}
 
 	sURL, err := h.s.Store(u)
 	if err != nil {
