@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/labstack/echo/v4"
@@ -46,15 +45,6 @@ func (h *httpHandler) EchoGet(c echo.Context) error {
 
 func (h *httpHandler) EchoPost(c echo.Context) error {
 	u := c.FormValue("url")
-	_, err := url.ParseRequestURI(u)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
-	}
-
-	uu, err := url.Parse(u)
-	if err != nil || uu.Scheme == "" || uu.Host == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid URL")
-	}
 
 	sURL, err := h.s.Store(u)
 	if err != nil {
