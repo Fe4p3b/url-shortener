@@ -41,9 +41,7 @@ func (h *httpHandler) EchoGet(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	}
 
-	c.Response().Header().Set("Location", url)
-	c.Response().WriteHeader(http.StatusTemporaryRedirect)
-	return nil
+	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (h *httpHandler) EchoPost(c echo.Context) error {
