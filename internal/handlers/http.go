@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
@@ -13,16 +14,17 @@ type httpHandler struct {
 }
 
 func NewHTTPHandler(s shortener.ShortenerService) *httpHandler {
-	h := &httpHandler{
+	return &httpHandler{
 		s:    s,
 		Echo: echo.New(),
 	}
-	h.setupRouting()
-
-	return h
 }
 
-func (h *httpHandler) setupRouting() {
+func (h *httpHandler) SetAddr(addr string) {
+	h.Server.Addr = addr
+}
+
+func (h *httpHandler) SetupRouting() {
 	h.Echo.GET("/:url", h.EchoGet)
 	h.Echo.POST("/", h.EchoPost)
 }
@@ -49,5 +51,5 @@ func (h *httpHandler) EchoPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	return c.String(http.StatusCreated, sURL)
+	return c.String(http.StatusCreated, fmt.Sprintf("%s/%s", h.Server.Addr, sURL))
 }

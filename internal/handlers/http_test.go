@@ -78,9 +78,7 @@ func Test_httpHandler_get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpHandler := &httpHandler{
-				s: tt.fields.s,
-			}
+			h := NewHTTPHandler(tt.fields.s)
 			request := httptest.NewRequest(tt.fields.method, "/", nil)
 			w := httptest.NewRecorder()
 
@@ -91,7 +89,7 @@ func Test_httpHandler_get(t *testing.T) {
 			c.SetParamNames("url")
 			c.SetParamValues(tt.fields.params)
 
-			err := httpHandler.EchoGet(c)
+			err := h.EchoGet(c)
 
 			if tt.want.err {
 				assert.Error(t, err)
@@ -162,9 +160,7 @@ func Test_httpHandler_post(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpHandler := &httpHandler{
-				s: tt.fields.s,
-			}
+			h := NewHTTPHandler(tt.fields.s)
 
 			f := make(url.Values)
 			f.Set("url", tt.fields.body)
@@ -177,7 +173,7 @@ func Test_httpHandler_post(t *testing.T) {
 			e := echo.New()
 			c := e.NewContext(request, w)
 
-			err := httpHandler.EchoPost(c)
+			err := h.EchoPost(c)
 			if tt.want.err {
 				assert.Error(t, err)
 				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
