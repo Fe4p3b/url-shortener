@@ -51,5 +51,5 @@ func (h *httpHandler) EchoPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	return c.String(http.StatusCreated, fmt.Sprintf("%s/%s", h.Server.Addr, sURL))
+	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL))
 }
