@@ -46,12 +46,13 @@ func (h *httpHandler) EchoGet(c echo.Context) error {
 
 func (h *httpHandler) EchoPost(c echo.Context) error {
 	u := c.FormValue("url")
-	uu, err := url.Parse(u)
+	_, err := url.ParseRequestURI(u)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 	}
 
-	if uu.Host == "" {
+	uu, err := url.Parse(u)
+	if err != nil || uu.Scheme == "" || uu.Host == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid URL")
 	}
 
