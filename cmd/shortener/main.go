@@ -7,13 +7,14 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	"github.com/Fe4p3b/url-shortener/internal/server"
-	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
+	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	env "github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	Address string `env:"SERVER_ADDRESS,required" envDefault:"localhost:8080"`
-	BaseURL string `env:"BASE_URL,required" envDefault:"http://localhost:8080"`
+	Address         string `env:"SERVER_ADDRESS,required" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage"`
 }
 
 func main() {
@@ -23,8 +24,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	m := memory.New(map[string]string{})
-	s := shortener.New(m)
+	f, err := file.New(cfg.FileStoragePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	s := shortener.New(f)
 	h := handlers.New(s, cfg.BaseURL)
 	h.SetupRouting()
 	h.SetAddr(cfg.Address)

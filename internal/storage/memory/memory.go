@@ -1,38 +1,36 @@
 package memory
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/storage"
 )
 
-var errorNoLinkFound = errors.New("not found")
-var errorDuplicateShortlink = errors.New("no such link")
-var _ repositories.ShortenerRepository = &memory{}
+var _ repositories.ShortenerRepository = &Memory{}
 
-type memory struct {
+type Memory struct {
 	sync.RWMutex
 	S map[string]string
 }
 
-func New(s map[string]string) *memory {
-	return &memory{
+func New(s map[string]string) *Memory {
+	return &Memory{
 		S: s,
 	}
 }
 
-func (m *memory) Find(url string) (s string, err error) {
+func (m *Memory) Find(url string) (s string, err error) {
 	v, ok := m.S[url]
 	if !ok {
-		return "", errorNoLinkFound
+		return "", storage.ErrorNoLinkFound
 	}
 	return v, nil
 }
 
-func (m *memory) Save(uuid string, url string) error {
+func (m *Memory) Save(uuid string, url string) error {
 	if _, ok := m.S[uuid]; ok {
-		return errorDuplicateShortlink
+		return storage.ErrorDuplicateShortlink
 	}
 
 	m.Lock()
