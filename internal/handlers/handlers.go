@@ -64,7 +64,7 @@ func (h *handler) EchoPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.BaseURL, sURL))
+	return c.String(http.StatusCreated, fmt.Sprintf("%s/%s", h.BaseURL, sURL))
 }
 
 func (h *handler) JSONPost(c echo.Context) error {
@@ -91,7 +91,7 @@ func (h *handler) JSONPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	jsonSURL := &model.SURL{SURL: fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL)}
+	jsonSURL := &model.SURL{SURL: fmt.Sprintf("%s/%s", h.BaseURL, sURL)}
 	b, err = s.Encode(jsonSURL)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))

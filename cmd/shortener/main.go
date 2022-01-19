@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -10,8 +11,6 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	env "github.com/caarlos0/env/v6"
 )
-
-const addr = "localhost:8080"
 
 type Config struct {
 	Address string `env:"SERVER_ADDRESS,required"`
@@ -24,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Println(cfg)
 	m := memory.New(map[string]string{})
 	s := shortener.New(m)
 	h := handlers.New(s, cfg.BaseURL)
