@@ -15,14 +15,16 @@ import (
 )
 
 type handler struct {
-	s shortener.ShortenerService
+	s       shortener.ShortenerService
+	BaseURL string
 	*echo.Echo
 }
 
-func New(s shortener.ShortenerService) *handler {
+func New(s shortener.ShortenerService, bURL string) *handler {
 	return &handler{
-		s:    s,
-		Echo: echo.New(),
+		s:       s,
+		BaseURL: bURL,
+		Echo:    echo.New(),
 	}
 }
 
@@ -62,7 +64,7 @@ func (h *handler) EchoPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL))
+	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.BaseURL, sURL))
 }
 
 func (h *handler) JSONPost(c echo.Context) error {

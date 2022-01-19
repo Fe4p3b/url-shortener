@@ -78,7 +78,7 @@ func Test_httpHandler_get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s)
+			h := New(tt.fields.s, "localhost:8080")
 			request := httptest.NewRequest(tt.fields.method, "/", nil)
 			w := httptest.NewRecorder()
 
@@ -160,7 +160,7 @@ func Test_httpHandler_post(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s)
+			h := New(tt.fields.s, "localhost:8080")
 
 			f := make(url.Values)
 			f.Set("url", tt.fields.body)
@@ -266,7 +266,7 @@ func Test_handler_JsonPost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s)
+			h := New(tt.fields.s, "localhost:8080")
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
