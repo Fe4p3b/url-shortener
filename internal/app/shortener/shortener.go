@@ -35,3 +35,5 @@ func (s *shortener) Store(url string) (string, error) {
 	}
 	return uuid, nil
 }
+
+var _ ShortenerService = &shortener{}

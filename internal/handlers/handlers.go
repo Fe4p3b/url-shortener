@@ -1,0 +1,107 @@
+package handlers
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+
+	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
+	"github.com/Fe4p3b/url-shortener/internal/serializers"
+	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
+	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
+	"github.com/labstack/echo/v4"
+)
+
+type handler struct {
+	s shortener.ShortenerService
+	*echo.Echo
+}
+
+func New(s shortener.ShortenerService) *handler {
+	return &handler{
+		s:    s,
+		Echo: echo.New(),
+	}
+}
+
+func (h *handler) SetAddr(addr string) {
+	h.Server.Addr = addr
+}
+
+func (h *handler) SetupRouting() {
+	h.Echo.GET("/:url", h.EchoGet)
+	h.Echo.POST("/", h.EchoPost)
+	h.Echo.POST("/api/shorten", h.JsonPost)
+}
+
+func (h *handler) EchoGet(c echo.Context) error {
+	q := c.Param("url")
+	if q == "" {
+		return echo.NewHTTPError(http.StatusNotFound, "The query parameter is missing")
+	}
+
+	url, err := h.s.Find(q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound))
+	}
+
+	return c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func (h *handler) EchoPost(c echo.Context) error {
+	u := c.FormValue("url")
+	_, err := url.Parse(u)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusInternalServerError))
+	}
+
+	sURL, err := h.s.Store(u)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL))
+}
+
+func (h *handler) JsonPost(c echo.Context) error {
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	b, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+	log.Println(string(b))
+	url, err := s.Decode(b)
+	if err != nil {
+		if errors.Is(err, json.ErrorEmptyUrl) {
+			return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	sURL, err := h.s.Store(url.Url)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	jsonSURL := &model.SURL{SURL: fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL)}
+	b, err = s.Encode(jsonSURL)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	c.Response().WriteHeader(http.StatusCreated)
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	_, err = c.Response().Write(b)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	}
+
+	return nil
+}

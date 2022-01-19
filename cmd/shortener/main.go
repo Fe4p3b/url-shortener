@@ -16,7 +16,7 @@ func main() {
 
 	m := memory.New(map[string]string{})
 	s := shortener.New(m)
-	h := handlers.NewHTTPHandler(s)
+	h := handlers.New(s)
 	h.SetupRouting()
 	h.SetAddr(addr)
 
