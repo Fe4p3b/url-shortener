@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -13,8 +12,8 @@ import (
 )
 
 type Config struct {
-	Address string `env:"SERVER_ADDRESS,required"`
-	BaseURL string `env:"BASE_URL,required"`
+	Address string `env:"SERVER_ADDRESS,required" envDefault:"localhost:8080"`
+	BaseURL string `env:"BASE_URL,required" envDefault:"localhost:8080"`
 }
 
 func main() {
@@ -23,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(cfg)
+
 	m := memory.New(map[string]string{})
 	s := shortener.New(m)
 	h := handlers.New(s, cfg.BaseURL)
