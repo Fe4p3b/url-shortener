@@ -95,8 +95,8 @@ func (h *handler) JSONPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	c.Response().WriteHeader(http.StatusCreated)
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	c.Response().WriteHeader(http.StatusCreated)
 	_, err = c.Response().Write(b)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
