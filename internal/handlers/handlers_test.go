@@ -276,7 +276,7 @@ func Test_handler_JsonPost(t *testing.T) {
 			e := echo.New()
 			c := e.NewContext(request, w)
 
-			err := h.JsonPost(c)
+			err := h.JSONPost(c)
 			if tt.want.err {
 				assert.Error(t, err)
 				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
@@ -286,7 +286,7 @@ func Test_handler_JsonPost(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
-			assert.Equal(t, tt.want.contentType, w.HeaderMap.Get(echo.HeaderContentType))
+			assert.Equal(t, tt.want.contentType, w.Header().Get(echo.HeaderContentType))
 			if tt.want.response != "" {
 				assert.Equal(t, tt.want.response, w.Body.String())
 			}

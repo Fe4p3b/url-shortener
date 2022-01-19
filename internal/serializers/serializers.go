@@ -9,14 +9,14 @@ import (
 
 type FactorySerializer interface {
 	Encode(s *model.SURL) ([]byte, error)
-	Decode([]byte) (*model.Url, error)
+	Decode([]byte) (*model.URL, error)
 }
 
-var _ FactorySerializer = &json.JsonSerializer{}
+var _ FactorySerializer = &json.JSONSerializer{}
 
 func GetSerializer(t string) (FactorySerializer, error) {
 	if t == "json" {
-		return &json.JsonSerializer{}, nil
+		return &json.JSONSerializer{}, nil
 	}
 	return nil, errors.New("wrong type of serializer")
 }

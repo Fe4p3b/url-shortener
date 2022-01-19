@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -34,7 +33,7 @@ func (h *handler) SetAddr(addr string) {
 func (h *handler) SetupRouting() {
 	h.Echo.GET("/:url", h.EchoGet)
 	h.Echo.POST("/", h.EchoPost)
-	h.Echo.POST("/api/shorten", h.JsonPost)
+	h.Echo.POST("/api/shorten", h.JSONPost)
 }
 
 func (h *handler) EchoGet(c echo.Context) error {
@@ -66,7 +65,7 @@ func (h *handler) EchoPost(c echo.Context) error {
 	return c.String(http.StatusCreated, fmt.Sprintf("http://%s/%s", h.Server.Addr, sURL))
 }
 
-func (h *handler) JsonPost(c echo.Context) error {
+func (h *handler) JSONPost(c echo.Context) error {
 	s, err := serializers.GetSerializer("json")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
@@ -76,16 +75,16 @@ func (h *handler) JsonPost(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
-	log.Println(string(b))
+
 	url, err := s.Decode(b)
 	if err != nil {
-		if errors.Is(err, json.ErrorEmptyUrl) {
+		if errors.Is(err, json.ErrorEmptyURL) {
 			return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	sURL, err := h.s.Store(url.Url)
+	sURL, err := h.s.Store(url.URL)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}

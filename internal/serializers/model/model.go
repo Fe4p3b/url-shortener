@@ -1,7 +1,7 @@
 package model
 
-type Url struct {
-	Url string `json:"url"`
+type URL struct {
+	URL string `json:"url"`
 }
 
 type SURL struct {
