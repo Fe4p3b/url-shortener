@@ -20,7 +20,7 @@ type handler struct {
 	*echo.Echo
 }
 
-func New(s shortener.ShortenerService, bURL string) *handler {
+func NewHandler(s shortener.ShortenerService, bURL string) *handler {
 	return &handler{
 		s:       s,
 		BaseURL: bURL,
@@ -28,17 +28,13 @@ func New(s shortener.ShortenerService, bURL string) *handler {
 	}
 }
 
-func (h *handler) SetAddr(addr string) {
-	h.Server.Addr = addr
-}
-
 func (h *handler) SetupRouting() {
-	h.Echo.GET("/:url", h.EchoGet)
-	h.Echo.POST("/", h.EchoPost)
+	h.Echo.GET("/:url", h.GetURL)
+	h.Echo.POST("/", h.PostURL)
 	h.Echo.POST("/api/shorten", h.JSONPost)
 }
 
-func (h *handler) EchoGet(c echo.Context) error {
+func (h *handler) GetURL(c echo.Context) error {
 	q := c.Param("url")
 	if q == "" {
 		return echo.NewHTTPError(http.StatusNotFound, "The query parameter is missing")
@@ -52,7 +48,7 @@ func (h *handler) EchoGet(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-func (h *handler) EchoPost(c echo.Context) error {
+func (h *handler) PostURL(c echo.Context) error {
 	u := c.FormValue("url")
 	_, err := url.Parse(u)
 	if err != nil {
@@ -91,7 +87,7 @@ func (h *handler) JSONPost(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 
-	jsonSURL := &model.SURL{SURL: fmt.Sprintf("%s/%s", h.BaseURL, sURL)}
+	jsonSURL := &model.ShortURL{ShortURL: fmt.Sprintf("%s/%s", h.BaseURL, sURL)}
 	b, err = s.Encode(jsonSURL)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))

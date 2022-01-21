@@ -4,6 +4,6 @@ type URL struct {
 	URL string `json:"url"`
 }
 
-type SURL struct {
-	SURL string `json:"result"`
+type ShortURL struct {
+	ShortURL string `json:"result"`
 }

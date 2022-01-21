@@ -19,8 +19,8 @@ type file struct {
 
 var _ repositories.ShortenerRepository = &file{}
 
-func New(path string) (*file, error) {
-	m := memory.New(map[string]string{})
+func NewFile(path string) (*file, error) {
+	m := memory.NewMemory(map[string]string{})
 	s := &file{
 		m: m,
 	}

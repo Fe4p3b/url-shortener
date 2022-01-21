@@ -41,19 +41,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	f, err := file.New(cfg.FileStoragePath)
+	f, err := file.NewFile(cfg.FileStoragePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
-	s := shortener.New(f)
-	h := handlers.New(s, cfg.BaseURL)
+	s := shortener.NewShortener(f)
+	h := handlers.NewHandler(s, cfg.BaseURL)
 	h.SetupRouting()
-	h.SetAddr(cfg.Address)
 
-	server := server.New(h.Server)
-	if err := server.Start(); err != http.ErrServerClosed {
+	server := server.NewServer(h.Server)
+	if err := server.Start(cfg.Address); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }

@@ -25,11 +25,11 @@ func Test_httpHandler_get(t *testing.T) {
 		err      bool
 	}
 
-	m := memory.New(map[string]string{
+	m := memory.NewMemory(map[string]string{
 		"asdf": "http://yandex.ru",
 		// "qwerty": "http://google.com",
 	})
-	s := shortener.New(m)
+	s := shortener.NewShortener(m)
 
 	tests := []struct {
 		name   string
@@ -78,7 +78,7 @@ func Test_httpHandler_get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s, "localhost:8080")
+			h := NewHandler(tt.fields.s, "localhost:8080")
 			request := httptest.NewRequest(tt.fields.method, "/", nil)
 			w := httptest.NewRecorder()
 
@@ -89,7 +89,7 @@ func Test_httpHandler_get(t *testing.T) {
 			c.SetParamNames("url")
 			c.SetParamValues(tt.fields.params)
 
-			err := h.EchoGet(c)
+			err := h.GetURL(c)
 
 			if tt.want.err {
 				assert.Error(t, err)
@@ -119,10 +119,10 @@ func Test_httpHandler_post(t *testing.T) {
 		err      bool
 	}
 
-	m := memory.New(map[string]string{
+	m := memory.NewMemory(map[string]string{
 		"asdf": "yandex.ru",
 	})
-	s := shortener.New(m)
+	s := shortener.NewShortener(m)
 
 	tests := []struct {
 		name   string
@@ -160,7 +160,7 @@ func Test_httpHandler_post(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s, "localhost:8080")
+			h := NewHandler(tt.fields.s, "localhost:8080")
 
 			f := make(url.Values)
 			f.Set("url", tt.fields.body)
@@ -173,7 +173,7 @@ func Test_httpHandler_post(t *testing.T) {
 			e := echo.New()
 			c := e.NewContext(request, w)
 
-			err := h.EchoPost(c)
+			err := h.PostURL(c)
 			if tt.want.err {
 				assert.Error(t, err)
 				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
@@ -205,10 +205,10 @@ func Test_handler_JsonPost(t *testing.T) {
 		contentType string
 	}
 
-	m := memory.New(map[string]string{
+	m := memory.NewMemory(map[string]string{
 		"asdf": "yandex.ru",
 	})
-	s := shortener.New(m)
+	s := shortener.NewShortener(m)
 
 	tests := []struct {
 		name   string
@@ -266,7 +266,7 @@ func Test_handler_JsonPost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.s, "localhost:8080")
+			h := NewHandler(tt.fields.s, "localhost:8080")
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)

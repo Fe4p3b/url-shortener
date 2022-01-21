@@ -14,7 +14,7 @@ type Memory struct {
 	S map[string]string
 }
 
-func New(s map[string]string) *Memory {
+func NewMemory(s map[string]string) *Memory {
 	return &Memory{
 		S: s,
 	}

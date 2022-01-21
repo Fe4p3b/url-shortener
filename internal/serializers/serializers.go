@@ -7,14 +7,14 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 )
 
-type FactorySerializer interface {
-	Encode(s *model.SURL) ([]byte, error)
+type Serializer interface {
+	Encode(s *model.ShortURL) ([]byte, error)
 	Decode([]byte) (*model.URL, error)
 }
 
-var _ FactorySerializer = &json.JSONSerializer{}
+var _ Serializer = &json.JSONSerializer{}
 
-func GetSerializer(t string) (FactorySerializer, error) {
+func GetSerializer(t string) (Serializer, error) {
 	if t == "json" {
 		return &json.JSONSerializer{}, nil
 	}

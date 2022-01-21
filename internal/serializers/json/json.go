@@ -11,7 +11,7 @@ var ErrorEmptyURL error = errors.New("url is not set")
 
 type JSONSerializer struct{}
 
-func (j *JSONSerializer) Encode(s *model.SURL) ([]byte, error) {
+func (j *JSONSerializer) Encode(s *model.ShortURL) ([]byte, error) {
 	d, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
