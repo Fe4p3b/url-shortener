@@ -8,6 +8,7 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
+	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/server"
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	env "github.com/caarlos0/env/v6"
@@ -50,6 +51,7 @@ func main() {
 	s := shortener.NewShortener(f)
 	h := handlers.NewHandler(s, cfg.BaseURL)
 	h.SetupRouting()
+	h.Use(middleware.GZIPmiddleware)
 
 	server := server.NewServer(h.Server)
 	if err := server.Start(cfg.Address); err != http.ErrServerClosed {
