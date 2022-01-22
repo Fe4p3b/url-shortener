@@ -51,7 +51,7 @@ func main() {
 	s := shortener.NewShortener(f)
 	h := handlers.NewHandler(s, cfg.BaseURL)
 	h.SetupRouting()
-	h.Use(middleware.GZIPmiddleware)
+	h.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware)
 
 	server := server.NewServer(h.Server)
 	if err := server.Start(cfg.Address); err != http.ErrServerClosed {
