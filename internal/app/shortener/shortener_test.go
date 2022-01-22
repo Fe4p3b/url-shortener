@@ -13,7 +13,7 @@ func Test_shortener_Find(t *testing.T) {
 		r repositories.ShortenerRepository
 	}
 
-	storage := memory.New(
+	storage := memory.NewMemory(
 		map[string]string{
 			"asdf": "yandex.ru",
 		},
@@ -66,7 +66,7 @@ func Test_shortener_Store(t *testing.T) {
 		r repositories.ShortenerRepository
 	}
 
-	storage := memory.New(
+	storage := memory.NewMemory(
 		map[string]string{
 			"asdf": "yandex.ru",
 		},

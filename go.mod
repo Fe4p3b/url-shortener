@@ -3,6 +3,7 @@ module github.com/Fe4p3b/url-shortener
 go 1.17
 
 require (
+	github.com/caarlos0/env/v6 v6.9.1
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/stretchr/testify v1.4.0
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125

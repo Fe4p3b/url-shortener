@@ -14,7 +14,7 @@ type shortener struct {
 	r repositories.ShortenerRepository
 }
 
-func New(r repositories.ShortenerRepository) *shortener {
+func NewShortener(r repositories.ShortenerRepository) *shortener {
 	return &shortener{
 		r: r,
 	}
@@ -35,3 +35,5 @@ func (s *shortener) Store(url string) (string, error) {
 	}
 	return uuid, nil
 }
+
+var _ ShortenerService = &shortener{}
