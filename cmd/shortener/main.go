@@ -79,6 +79,10 @@ func main() {
 	}
 	defer pg.Close()
 
+	if err := pg.CreateShortenerTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	s := shortener.NewShortener(pg)
 
 	h := handlers.NewHandler(s, cfg.BaseURL)
