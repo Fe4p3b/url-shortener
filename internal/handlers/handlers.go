@@ -51,7 +51,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("url - %s, status - %d", url, http.StatusTemporaryRedirect)
+	log.Printf("query_url - %s, url - %s, status - %d", q, url, http.StatusTemporaryRedirect)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -78,6 +78,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("query_url - %s, short-url - %s", u, sURL)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("%s/%s", h.BaseURL, sURL)))
 }
@@ -117,6 +118,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("query_url - %s, short-url - %s", url, sURL)
 	jsonSURL := &model.ShortURL{ShortURL: fmt.Sprintf("%s/%s", h.BaseURL, sURL)}
 	b, err = s.Encode(jsonSURL)
 	if err != nil {
