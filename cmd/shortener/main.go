@@ -9,6 +9,7 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
+	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	Address         string `env:"SERVER_ADDRESS,required" envDefault:"localhost:8080"`
 	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage"`
+	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable"`
 }
 
 func setConfig(cfg *Config) error {
@@ -28,25 +30,31 @@ func setConfig(cfg *Config) error {
 
 	var (
 		address         string
-		baseUrl         string
+		baseURL         string
 		fileStoragePath string
+		databaseDSN     string
 	)
 
 	flag.StringVar(&address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
-	flag.StringVar(&baseUrl, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
+	flag.StringVar(&baseURL, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
 	flag.StringVar(&fileStoragePath, "f", "/tmp/url_shortener_storage", "Путь до файла с сокращёнными URL")
+	flag.StringVar(&databaseDSN, "d", "postgres://postgres:12345@localhost:5432/shortener?sslmode=disable", "Строка с адресом подключения к БД")
 	flag.Parse()
 
 	if address != "localhost:8080" {
 		cfg.Address = address
 	}
 
-	if baseUrl != "http://localhost:8080" {
-		cfg.BaseURL = baseUrl
+	if baseURL != "http://localhost:8080" {
+		cfg.BaseURL = baseURL
 	}
 
 	if fileStoragePath != "/tmp/url_shortener_storage" {
 		cfg.FileStoragePath = fileStoragePath
+	}
+
+	if databaseDSN != "postgres://postgres:12345@localhost:5432/shortener?sslmode=disable" {
+		cfg.DatabaseDSN = databaseDSN
 	}
 
 	log.Printf("config from flags: %v", cfg)
@@ -65,7 +73,13 @@ func main() {
 	}
 	defer f.Close()
 
-	s := shortener.NewShortener(f)
+	pg, err := pg.NewConnection(cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pg.Close()
+
+	s := shortener.NewShortener(pg)
 
 	h := handlers.NewHandler(s, cfg.BaseURL)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware)

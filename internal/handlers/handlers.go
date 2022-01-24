@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -32,6 +33,8 @@ func (h *handler) SetupRouting() {
 	h.Router.Get("/{url}", h.GetURL)
 	h.Router.Post("/", h.PostURL)
 	h.Router.Post("/api/shorten", h.JSONPost)
+
+	h.Router.Get("/ping", h.PingPG)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -125,4 +128,14 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func (h *handler) PingPG(w http.ResponseWriter, r *http.Request) {
+	if err := h.s.Ping(); err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

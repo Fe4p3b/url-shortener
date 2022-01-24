@@ -8,6 +8,7 @@ import (
 type ShortenerService interface {
 	Find(string) (string, error)
 	Store(string) (string, error)
+	Ping() error
 }
 
 type shortener struct {
@@ -34,6 +35,10 @@ func (s *shortener) Store(url string) (string, error) {
 		return "", err
 	}
 	return uuid, nil
+}
+
+func (s *shortener) Ping() error {
+	return s.r.Ping()
 }
 
 var _ ShortenerService = &shortener{}

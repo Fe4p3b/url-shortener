@@ -38,3 +38,7 @@ func (m *Memory) Save(uuid string, url string) error {
 	m.Unlock()
 	return nil
 }
+
+func (m *Memory) Ping() error {
+	return nil
+}

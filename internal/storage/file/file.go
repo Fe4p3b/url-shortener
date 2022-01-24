@@ -81,3 +81,7 @@ func (f *file) Save(uuid string, url string) error {
 func (f *file) Close() error {
 	return f.file.Close()
 }
+
+func (f *file) Ping() error {
+	return nil
+}
