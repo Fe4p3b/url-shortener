@@ -18,36 +18,39 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-func GZIPWriterMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if !strings.Contains(c.Request().Header.Get(echo.HeaderAcceptEncoding), "gzip") {
-			return next(c)
+func GZIPWriterMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get(echo.HeaderAcceptEncoding), "gzip") {
+			next.ServeHTTP(w, r)
 		}
 
-		gz, err := gzip.NewWriterLevel(c.Response().Writer, gzip.BestSpeed)
+		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+			return
 		}
 		defer gz.Close()
 
-		c.Response().Header().Set(echo.HeaderContentEncoding, "gzip")
-		c.Response().Writer = gzipWriter{ResponseWriter: c.Response().Writer, Writer: gz}
-		return next(c)
-	}
+		w.Header().Set(echo.HeaderContentEncoding, "gzip")
+		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+	})
 }
 
-func GZIPReaderMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if c.Request().Header.Get(echo.HeaderContentEncoding) == "gzip" {
-			gz, err := gzip.NewReader(c.Request().Body)
+func GZIPReaderMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(echo.HeaderContentEncoding) == "gzip" {
+			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(http.StatusText(http.StatusBadRequest)))
+				return
 			}
 			defer gz.Close()
 
-			c.Request().Body = gz
+			r.Body = gz
 		}
 
-		return next(c)
-	}
+		next.ServeHTTP(w, r)
+	})
 }

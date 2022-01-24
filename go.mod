@@ -4,9 +4,11 @@ go 1.17
 
 require (
 	github.com/caarlos0/env/v6 v6.9.1
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/stretchr/testify v1.4.0
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125
+	gopkg.in/yaml.v2 v2.2.2
 )
 
 require (
@@ -21,5 +23,4 @@ require (
 	golang.org/x/net v0.0.0-20210913180222-943fd674d43e // indirect
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

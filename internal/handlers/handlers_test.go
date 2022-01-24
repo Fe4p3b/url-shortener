@@ -9,6 +9,7 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
+	"github.com/go-chi/chi/v5"
 	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func Test_httpHandler_get(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
 		method string
-		params string
+		url    string
 	}
 	type want struct {
 		code     int
@@ -41,11 +42,11 @@ func Test_httpHandler_get(t *testing.T) {
 			fields: fields{
 				s:      s,
 				method: http.MethodGet,
-				params: "asdf",
+				url:    "/asdf",
 			},
 			want: want{
 				code:     http.StatusTemporaryRedirect,
-				response: "",
+				response: "<a href=\"http://yandex.ru\">Temporary Redirect</a>.\n\n",
 				err:      false,
 			},
 		},
@@ -54,7 +55,7 @@ func Test_httpHandler_get(t *testing.T) {
 			fields: fields{
 				s:      s,
 				method: http.MethodGet,
-				params: "qwerty",
+				url:    "/qwerty",
 			},
 			want: want{
 				code:     http.StatusNotFound,
@@ -67,38 +68,41 @@ func Test_httpHandler_get(t *testing.T) {
 			fields: fields{
 				s:      s,
 				method: http.MethodGet,
-				params: "",
+				url:    "/",
 			},
 			want: want{
 				code:     http.StatusNotFound,
-				response: "The query parameter is missing",
+				response: "404 page not found\n",
 				err:      true,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s, "localhost:8080")
-			request := httptest.NewRequest(tt.fields.method, "/", nil)
+			h := NewHandler(tt.fields.s, "http://localhost:8080")
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, nil)
 			w := httptest.NewRecorder()
 
-			e := echo.New()
-			c := e.NewContext(request, w)
+			// e := echo.New()
+			// c := e.NewContext(request, w)
 
-			c.SetPath("/:url")
-			c.SetParamNames("url")
-			c.SetParamValues(tt.fields.params)
+			// c.SetPath("/:url")
+			// c.SetParamNames("url")
+			// c.SetParamValues(tt.fields.params)
 
-			err := h.GetURL(c)
+			r := chi.NewRouter()
+			r.Get("/{url}", h.GetURL)
+			r.ServeHTTP(w, request)
+			// h.GetURL(w, request)
 
-			if tt.want.err {
-				assert.Error(t, err)
-				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-				assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-				return
-			}
+			// if tt.want.err {
+			// 	assert.Error(t, err)
+			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
+			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
+			// 	return
+			// }
 
-			assert.NoError(t, err)
+			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.response, w.Body.String())
 
@@ -170,18 +174,15 @@ func Test_httpHandler_post(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			e := echo.New()
-			c := e.NewContext(request, w)
+			h.PostURL(w, request)
+			// if tt.want.err {
+			// 	assert.Error(t, err)
+			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
+			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
+			// 	return
+			// }
 
-			err := h.PostURL(c)
-			if tt.want.err {
-				assert.Error(t, err)
-				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-				assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-				return
-			}
-
-			assert.NoError(t, err)
+			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			if tt.want.response != "" {
 				assert.Equal(t, tt.want.response, w.Body.String())
@@ -222,13 +223,13 @@ func Test_handler_JsonPost(t *testing.T) {
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":"https://yandex.ru"}`,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "application/json",
 			},
 			want: want{
 				code:        http.StatusCreated,
 				response:    "",
 				err:         false,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "application/json",
 			},
 		},
 		{
@@ -238,13 +239,13 @@ func Test_handler_JsonPost(t *testing.T) {
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":"yandex.ru"}`,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "application/json",
 			},
 			want: want{
 				code:        http.StatusCreated,
 				response:    "",
 				err:         false,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "application/json",
 			},
 		},
 		{
@@ -254,13 +255,13 @@ func Test_handler_JsonPost(t *testing.T) {
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":""}`,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "application/json",
 			},
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    "Bad Request",
 				err:         true,
-				contentType: echo.MIMEApplicationJSON,
+				contentType: "",
 			},
 		},
 	}
@@ -273,18 +274,15 @@ func Test_handler_JsonPost(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			e := echo.New()
-			c := e.NewContext(request, w)
+			h.JSONPost(w, request)
+			// if tt.want.err {
+			// 	assert.Error(t, err)
+			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
+			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
+			// 	return
+			// }
 
-			err := h.JSONPost(c)
-			if tt.want.err {
-				assert.Error(t, err)
-				assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-				assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-				return
-			}
-
-			assert.NoError(t, err)
+			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.contentType, w.Header().Get(echo.HeaderContentType))
 			if tt.want.response != "" {

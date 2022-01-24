@@ -9,7 +9,6 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
-	"github.com/Fe4p3b/url-shortener/internal/server"
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	env "github.com/caarlos0/env/v6"
 )
@@ -29,10 +28,13 @@ func setConfig(cfg *Config) error {
 		return nil
 	}
 
+	log.Printf("config from flags: %v", cfg)
 	err := env.Parse(cfg)
 	if err != nil {
 		return err
 	}
+
+	log.Printf("config from env: %v", cfg)
 	return nil
 }
 
@@ -49,12 +51,12 @@ func main() {
 	defer f.Close()
 
 	s := shortener.NewShortener(f)
-	h := handlers.NewHandler(s, cfg.BaseURL)
-	h.SetupRouting()
-	h.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware)
 
-	server := server.NewServer(h.Server)
-	if err := server.Start(cfg.Address); err != http.ErrServerClosed {
+	h := handlers.NewHandler(s, cfg.BaseURL)
+	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware)
+	h.SetupRouting()
+
+	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
