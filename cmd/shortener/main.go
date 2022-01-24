@@ -25,10 +25,11 @@ func setConfig(cfg *Config) error {
 		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
 		flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/url_shortener_storage", "Путь до файла с сокращёнными URL")
 		flag.Parse()
+
+		log.Printf("config from flags: %v", cfg)
 		return nil
 	}
 
-	log.Printf("config from flags: %v", cfg)
 	err := env.Parse(cfg)
 	if err != nil {
 		return err

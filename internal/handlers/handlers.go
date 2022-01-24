@@ -38,8 +38,6 @@ func (h *handler) SetupRouting() {
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	q := chi.URLParam(r, "url")
 
-	log.Printf("url - %s", q)
-
 	if q == "" {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("The query parameter is missing"))
@@ -53,6 +51,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("url - %s, status - %d", url, http.StatusTemporaryRedirect)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
