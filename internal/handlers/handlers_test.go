@@ -59,7 +59,7 @@ func Test_httpHandler_get(t *testing.T) {
 			},
 			want: want{
 				code:     http.StatusNotFound,
-				response: "Not Found",
+				response: "Not Found\n",
 				err:      true,
 			},
 		},
@@ -83,26 +83,10 @@ func Test_httpHandler_get(t *testing.T) {
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, nil)
 			w := httptest.NewRecorder()
 
-			// e := echo.New()
-			// c := e.NewContext(request, w)
-
-			// c.SetPath("/:url")
-			// c.SetParamNames("url")
-			// c.SetParamValues(tt.fields.params)
-
 			r := chi.NewRouter()
 			r.Get("/{url}", h.GetURL)
 			r.ServeHTTP(w, request)
-			// h.GetURL(w, request)
 
-			// if tt.want.err {
-			// 	assert.Error(t, err)
-			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-			// 	return
-			// }
-
-			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.response, w.Body.String())
 
@@ -170,19 +154,12 @@ func Test_httpHandler_post(t *testing.T) {
 			f.Set("url", tt.fields.body)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(f.Encode()))
-			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 			w := httptest.NewRecorder()
 
 			h.PostURL(w, request)
-			// if tt.want.err {
-			// 	assert.Error(t, err)
-			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-			// 	return
-			// }
 
-			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			if tt.want.response != "" {
 				assert.Equal(t, tt.want.response, w.Body.String())
@@ -259,9 +236,9 @@ func Test_handler_JsonPost(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusBadRequest,
-				response:    "Bad Request",
+				response:    "Bad Request\n",
 				err:         true,
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 	}
@@ -275,14 +252,7 @@ func Test_handler_JsonPost(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			h.JSONPost(w, request)
-			// if tt.want.err {
-			// 	assert.Error(t, err)
-			// 	assert.Equal(t, tt.want.code, err.(*echo.HTTPError).Code)
-			// 	assert.Equal(t, tt.want.response, err.(*echo.HTTPError).Message)
-			// 	return
-			// }
 
-			// assert.NoError(t, err)
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.contentType, w.Header().Get(echo.HeaderContentType))
 			if tt.want.response != "" {
