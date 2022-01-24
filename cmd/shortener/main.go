@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
@@ -20,22 +19,37 @@ type Config struct {
 }
 
 func setConfig(cfg *Config) error {
-	if len(os.Args) > 1 {
-		flag.StringVar(&cfg.Address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
-		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
-		flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/url_shortener_storage", "Путь до файла с сокращёнными URL")
-		flag.Parse()
-
-		log.Printf("config from flags: %v", cfg)
-		return nil
-	}
-
 	err := env.Parse(cfg)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("config from env: %v", cfg)
+
+	var (
+		address         string
+		baseUrl         string
+		fileStoragePath string
+	)
+
+	flag.StringVar(&address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
+	flag.StringVar(&baseUrl, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
+	flag.StringVar(&fileStoragePath, "f", "/tmp/url_shortener_storage", "Путь до файла с сокращёнными URL")
+	flag.Parse()
+
+	if address != "localhost:8080" {
+		cfg.Address = address
+	}
+
+	if baseUrl != "http://localhost:8080" {
+		cfg.BaseURL = baseUrl
+	}
+
+	if fileStoragePath != "/tmp/url_shortener_storage" {
+		cfg.FileStoragePath = fileStoragePath
+	}
+
+	log.Printf("config from flags: %v", cfg)
 	return nil
 }
 
