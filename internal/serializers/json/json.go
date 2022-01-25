@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 )
 
@@ -30,4 +31,20 @@ func (j *JSONSerializer) Decode(b []byte) (*model.URL, error) {
 		return nil, ErrorEmptyURL
 	}
 	return url, nil
+}
+
+func (j *JSONSerializer) DecodeURLBatch(b []byte) (batch []repositories.URL, err error) {
+	err = json.Unmarshal(b, &batch)
+	if err != nil {
+		return nil, err
+	}
+	return batch, nil
+}
+
+func (j *JSONSerializer) EncodeURLBatch(batch []repositories.URL) (b []byte, err error) {
+	b, err = json.Marshal(batch)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

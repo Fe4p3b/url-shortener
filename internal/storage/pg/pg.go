@@ -12,7 +12,8 @@ import (
 )
 
 type pg struct {
-	db *sql.DB
+	db     *sql.DB
+	buffer []repositories.URL
 }
 
 var _ repositories.ShortenerRepository = &pg{}
@@ -23,7 +24,7 @@ func NewConnection(dsn string) (*pg, error) {
 		return nil, err
 	}
 
-	return &pg{db: conn}, nil
+	return &pg{db: conn, buffer: make([]repositories.URL, 0, 1000)}, nil
 }
 
 func (p *pg) CreateShortenerTable() error {
@@ -31,7 +32,6 @@ func (p *pg) CreateShortenerTable() error {
 	if err != nil {
 		return err
 	}
-	log.Printf("migrations - %s", sql)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -57,7 +57,7 @@ func (p *pg) Find(sURL string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	sql := `SELECT url FROM shortener.shortener WHERE short_url=$1`
+	sql := `SELECT original_url FROM shortener.shortener WHERE short_url=$1`
 
 	var (
 		URL string
@@ -77,13 +77,54 @@ func (p *pg) Save(sURL string, URL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	sql := `INSERT INTO shortener.shortener VALUES($1, $2, $3)`
+	sql := `INSERT INTO shortener.shortener(short_url, original_url, user_id) VALUES($1, $2, $3)`
 
 	if _, err := p.db.ExecContext(ctx, sql, sURL, URL, "asdf"); err != nil {
 		log.Printf("err - %v", err)
 		return err
 	}
 
+	return nil
+}
+
+func (p *pg) AddURLBuffer(u repositories.URL) error {
+	p.buffer = append(p.buffer, u)
+
+	if cap(p.buffer) == len(p.buffer) {
+		if err := p.Flush(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *pg) Flush() error {
+	tx, err := p.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO shortener.shortener(correlation_id, short_url, original_url, user_id) VALUES($1, $2, $3, $4)")
+	if err != nil {
+		return err
+	}
+
+	for _, v := range p.buffer {
+		log.Printf("INSERT INTO shortener.shortener(correlation_id, short_url, original_url, user_id) VALUES(%s, %s, %s, %s)", v.CorrelationID, v.URL, v.ShortURL, "")
+		if _, err := stmt.Exec(v.CorrelationID, v.URL, v.ShortURL, ""); err != nil {
+			if err := tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	p.buffer = p.buffer[:0]
 	return nil
 }
 

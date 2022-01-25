@@ -40,5 +40,13 @@ func (m *Memory) Save(uuid string, url string) error {
 }
 
 func (m *Memory) Ping() error {
-	return nil
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) AddURLBuffer(repositories.URL) error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
 }

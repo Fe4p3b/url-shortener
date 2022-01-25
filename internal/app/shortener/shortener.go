@@ -8,6 +8,7 @@ import (
 type ShortenerService interface {
 	Find(string) (string, error)
 	Store(string) (string, error)
+	StoreBatch([]repositories.URL) ([]repositories.URL, error)
 	Ping() error
 }
 
@@ -39,6 +40,28 @@ func (s *shortener) Store(url string) (string, error) {
 
 func (s *shortener) Ping() error {
 	return s.r.Ping()
+}
+
+func (s *shortener) StoreBatch(urls []repositories.URL) (batch []repositories.URL, err error) {
+	for _, v := range urls {
+		uuid, err := shortid.Generate()
+		if err != nil {
+			return nil, err
+		}
+		v.ShortURL = uuid
+
+		if err := s.r.AddURLBuffer(v); err != nil {
+			return nil, err
+		}
+
+		v.URL = ""
+		batch = append(batch, v)
+	}
+	if err := s.r.Flush(); err != nil {
+		return nil, err
+	}
+
+	return
 }
 
 var _ ShortenerService = &shortener{}

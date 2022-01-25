@@ -34,6 +34,7 @@ func (h *handler) SetupRouting() {
 	h.Router.Post("/", h.PostURL)
 	h.Router.Post("/api/shorten", h.JSONPost)
 
+	h.Router.Post("/api/shorten/batch", h.ShortenBatch)
 	h.Router.Get("/ping", h.PingPG)
 }
 
@@ -128,6 +129,45 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	batch, err := s.DecodeURLBatch(b)
+
+	sURLBatch, err := h.s.StoreBatch(batch)
+	if err != nil {
+		log.Printf("StoreBatch - %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println(sURLBatch)
+
+	b, err = s.EncodeURLBatch(sURLBatch)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(b)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *handler) PingPG(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"gopkg.in/yaml.v2"
 )
@@ -83,5 +84,13 @@ func (f *file) Close() error {
 }
 
 func (f *file) Ping() error {
-	return nil
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) AddURLBuffer(repositories.URL) error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
 }
