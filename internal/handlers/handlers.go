@@ -2,9 +2,7 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -16,16 +14,14 @@ import (
 )
 
 type handler struct {
-	s       shortener.ShortenerService
-	BaseURL string
-	Router  *chi.Mux
+	s      shortener.ShortenerService
+	Router *chi.Mux
 }
 
-func NewHandler(s shortener.ShortenerService, bURL string) *handler {
+func NewHandler(s shortener.ShortenerService) *handler {
 	return &handler{
-		s:       s,
-		BaseURL: bURL,
-		Router:  chi.NewRouter(),
+		s:      s,
+		Router: chi.NewRouter(),
 	}
 }
 
@@ -77,7 +73,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", h.BaseURL, sURL)))
+	_, err = w.Write([]byte(sURL))
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -114,7 +110,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonSURL := &model.ShortURL{ShortURL: fmt.Sprintf("%s/%s", h.BaseURL, sURL)}
+	jsonSURL := &model.ShortURL{ShortURL: sURL}
 	b, err = s.Encode(jsonSURL)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -145,15 +141,16 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	batch, err := s.DecodeURLBatch(b)
-
-	sURLBatch, err := h.s.StoreBatch(batch)
 	if err != nil {
-		log.Printf("StoreBatch - %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	log.Println(sURLBatch)
+	sURLBatch, err := h.s.StoreBatch(batch)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
 	b, err = s.EncodeURLBatch(sURLBatch)
 	if err != nil {
@@ -172,7 +169,6 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) PingPG(w http.ResponseWriter, r *http.Request) {
 	if err := h.s.Ping(); err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

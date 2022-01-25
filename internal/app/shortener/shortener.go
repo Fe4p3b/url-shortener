@@ -1,6 +1,8 @@
 package shortener
 
 import (
+	"fmt"
+
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/teris-io/shortid"
 )
@@ -13,12 +15,14 @@ type ShortenerService interface {
 }
 
 type shortener struct {
-	r repositories.ShortenerRepository
+	r       repositories.ShortenerRepository
+	BaseURL string
 }
 
-func NewShortener(r repositories.ShortenerRepository) *shortener {
+func NewShortener(r repositories.ShortenerRepository, u string) *shortener {
 	return &shortener{
-		r: r,
+		r:       r,
+		BaseURL: u,
 	}
 }
 
@@ -35,7 +39,7 @@ func (s *shortener) Store(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return uuid, nil
+	return fmt.Sprintf("%s/%s", s.BaseURL, uuid), nil
 }
 
 func (s *shortener) Ping() error {
@@ -55,6 +59,7 @@ func (s *shortener) StoreBatch(urls []repositories.URL) (batch []repositories.UR
 		}
 
 		v.URL = ""
+		v.ShortURL = fmt.Sprintf("%s/%s", s.BaseURL, uuid)
 		batch = append(batch, v)
 	}
 	if err := s.r.Flush(); err != nil {

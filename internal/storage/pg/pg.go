@@ -3,7 +3,6 @@ package pg
 import (
 	"context"
 	"database/sql"
-	"log"
 	"os"
 	"time"
 
@@ -66,7 +65,6 @@ func (p *pg) Find(sURL string) (string, error) {
 	row := p.db.QueryRowContext(ctx, sql, sURL)
 
 	if err := row.Scan(&URL); err != nil {
-		log.Println(err)
 		return "", err
 	}
 
@@ -80,7 +78,6 @@ func (p *pg) Save(sURL string, URL string) error {
 	sql := `INSERT INTO shortener.shortener(short_url, original_url, user_id) VALUES($1, $2, $3)`
 
 	if _, err := p.db.ExecContext(ctx, sql, sURL, URL, "asdf"); err != nil {
-		log.Printf("err - %v", err)
 		return err
 	}
 
@@ -111,7 +108,6 @@ func (p *pg) Flush() error {
 	}
 
 	for _, v := range p.buffer {
-		log.Printf("INSERT INTO shortener.shortener(correlation_id, short_url, original_url, user_id) VALUES(%s, %s, %s, %s)", v.CorrelationID, v.URL, v.ShortURL, "")
 		if _, err := stmt.Exec(v.CorrelationID, v.URL, v.ShortURL, ""); err != nil {
 			if err := tx.Rollback(); err != nil {
 				return err

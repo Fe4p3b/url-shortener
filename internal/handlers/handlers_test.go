@@ -30,7 +30,7 @@ func Test_httpHandler_get(t *testing.T) {
 		"asdf": "http://yandex.ru",
 		// "qwerty": "http://google.com",
 	})
-	s := shortener.NewShortener(m)
+	s := shortener.NewShortener(m, "http://localhost:8080")
 
 	tests := []struct {
 		name   string
@@ -79,7 +79,7 @@ func Test_httpHandler_get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s, "http://localhost:8080")
+			h := NewHandler(tt.fields.s)
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, nil)
 			w := httptest.NewRecorder()
 
@@ -110,7 +110,7 @@ func Test_httpHandler_post(t *testing.T) {
 	m := memory.NewMemory(map[string]string{
 		"asdf": "yandex.ru",
 	})
-	s := shortener.NewShortener(m)
+	s := shortener.NewShortener(m, "http://localhost:8080")
 
 	tests := []struct {
 		name   string
@@ -148,7 +148,7 @@ func Test_httpHandler_post(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s, "localhost:8080")
+			h := NewHandler(tt.fields.s)
 
 			f := make(url.Values)
 			f.Set("url", tt.fields.body)
@@ -186,7 +186,7 @@ func Test_handler_JsonPost(t *testing.T) {
 	m := memory.NewMemory(map[string]string{
 		"asdf": "yandex.ru",
 	})
-	s := shortener.NewShortener(m)
+	s := shortener.NewShortener(m, "http://localhost:8080")
 
 	tests := []struct {
 		name   string
@@ -244,7 +244,7 @@ func Test_handler_JsonPost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s, "localhost:8080")
+			h := NewHandler(tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)

@@ -26,8 +26,6 @@ func setConfig(cfg *Config) error {
 		return err
 	}
 
-	log.Printf("config from env: %v", cfg)
-
 	var (
 		address         string
 		baseURL         string
@@ -57,7 +55,6 @@ func setConfig(cfg *Config) error {
 		cfg.DatabaseDSN = databaseDSN
 	}
 
-	log.Printf("config from flags: %v", cfg)
 	return nil
 }
 
@@ -83,9 +80,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := shortener.NewShortener(pg)
+	s := shortener.NewShortener(pg, cfg.BaseURL)
 
-	h := handlers.NewHandler(s, cfg.BaseURL)
+	h := handlers.NewHandler(s)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware)
 	h.SetupRouting()
 
