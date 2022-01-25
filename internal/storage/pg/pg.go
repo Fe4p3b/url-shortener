@@ -108,7 +108,7 @@ func (p *pg) Flush() error {
 	}
 
 	for _, v := range p.buffer {
-		if _, err := stmt.Exec(v.CorrelationID, v.URL, v.ShortURL, ""); err != nil {
+		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, ""); err != nil {
 			if err := tx.Rollback(); err != nil {
 				return err
 			}
