@@ -64,7 +64,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	u := string(b)
 
 	_, err = url.Parse(u)
-	if err != nil {
+	if err != nil || len(u) == 0 {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
