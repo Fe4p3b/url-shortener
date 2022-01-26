@@ -69,7 +69,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("handler PostURL url: %s", u)
+	log.Printf("url: %s", u)
 
 	sURL, err := h.s.Store(u)
 
@@ -85,7 +85,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("handler PostURL: %s", sURL)
+	log.Printf("result: %s", sURL)
 
 	w.WriteHeader(header)
 	_, err = w.Write([]byte(sURL))
@@ -119,7 +119,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("handler PostURL url: %s", url)
+	log.Printf("url: %s", url)
 
 	sURL, err := h.s.Store(url.URL)
 
@@ -142,7 +142,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("handler JSONPost: %s", b)
+	log.Printf("result: %s", b)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(header)
