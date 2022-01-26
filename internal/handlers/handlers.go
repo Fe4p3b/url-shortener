@@ -69,6 +69,8 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("handler PostURL url: %s", u)
+
 	sURL, err := h.s.Store(u)
 
 	var pgErr *pgconn.PgError
@@ -116,6 +118,8 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("handler PostURL url: %s", url)
 
 	sURL, err := h.s.Store(url.URL)
 
