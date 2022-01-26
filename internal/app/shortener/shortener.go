@@ -1,9 +1,12 @@
 package shortener
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/teris-io/shortid"
 )
 
@@ -35,10 +38,16 @@ func (s *shortener) Store(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = s.r.Save(uuid, url)
+
+	err = s.r.Save(&uuid, url)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			return fmt.Sprintf("%s/%s", s.BaseURL, uuid), err
+		}
 		return "", err
 	}
+
 	return fmt.Sprintf("%s/%s", s.BaseURL, uuid), nil
 }
 

@@ -62,12 +62,12 @@ func (f *file) Find(url string) (s string, err error) {
 	return
 }
 
-func (f *file) Save(uuid string, url string) error {
+func (f *file) Save(uuid *string, url string) error {
 	if err := f.m.Save(uuid, url); err != nil {
 		return err
 	}
 
-	data, err := yaml.Marshal(&map[string]string{uuid: url})
+	data, err := yaml.Marshal(&map[string]string{*uuid: url})
 	if err != nil {
 		return err
 	}

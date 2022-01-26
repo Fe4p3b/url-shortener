@@ -81,7 +81,7 @@ func Test_memory_Save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.Save(tt.args.short, tt.args.url)
+			err := s.Save(&tt.args.short, tt.args.url)
 
 			if err != nil && err != tt.wantErr {
 				t.Errorf("Find() error = %v, wantErr = %v", err, tt.wantErr)

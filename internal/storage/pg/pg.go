@@ -3,10 +3,14 @@ package pg
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"log"
 	"os"
 	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
@@ -71,17 +75,28 @@ func (p *pg) Find(sURL string) (string, error) {
 	return URL, nil
 }
 
-func (p *pg) Save(sURL string, URL string) error {
+func (p *pg) Save(sURL *string, URL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	sql := `INSERT INTO shortener.shortener(short_url, original_url, user_id) VALUES($1, $2, $3)`
 
-	if _, err := p.db.ExecContext(ctx, sql, sURL, URL, "asdf"); err != nil {
-		return err
+	_, err := p.db.ExecContext(ctx, sql, sURL, URL, "asdf")
+	if err == nil {
+		return nil
 	}
 
-	return nil
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+		sql := `SELECT short_url FROM shortener.shortener WHERE original_url=$1`
+		row := p.db.QueryRowContext(ctx, sql, URL)
+		if err := row.Scan(sURL); err != nil {
+			return err
+		}
+		log.Printf("select - %s", *sURL)
+	}
+
+	return err
 }
 
 func (p *pg) AddURLBuffer(u repositories.URL) error {

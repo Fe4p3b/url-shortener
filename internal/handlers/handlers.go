@@ -11,6 +11,8 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 )
 
 type handler struct {
@@ -67,12 +69,20 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sURL, err := h.s.Store(u)
+
+	var pgErr *pgconn.PgError
+	header := http.StatusCreated
+
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			header = http.StatusConflict
+		} else {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(header)
 	_, err = w.Write([]byte(sURL))
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -105,9 +115,17 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sURL, err := h.s.Store(url.URL)
+
+	var pgErr *pgconn.PgError
+	header := http.StatusCreated
+
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			header = http.StatusConflict
+		} else {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	jsonSURL := &model.ShortURL{ShortURL: sURL}
@@ -118,7 +136,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(header)
 	_, err = w.Write(b)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

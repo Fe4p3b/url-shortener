@@ -28,13 +28,13 @@ func (m *Memory) Find(url string) (s string, err error) {
 	return v, nil
 }
 
-func (m *Memory) Save(uuid string, url string) error {
-	if _, ok := m.S[uuid]; ok {
+func (m *Memory) Save(uuid *string, url string) error {
+	if _, ok := m.S[*uuid]; ok {
 		return storage.ErrorDuplicateShortlink
 	}
 
 	m.Lock()
-	m.S[uuid] = url
+	m.S[*uuid] = url
 	m.Unlock()
 	return nil
 }
