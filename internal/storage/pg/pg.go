@@ -89,11 +89,12 @@ func (p *pg) Save(sURL *string, URL string) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		sql := `SELECT short_url FROM shortener.shortener WHERE original_url=$1`
+		log.Printf("short_url before: %v", sURL)
 		row := p.db.QueryRowContext(ctx, sql, URL)
 		if err := row.Scan(sURL); err != nil {
 			return err
 		}
-		log.Printf("select - %s", *sURL)
+		log.Printf("short_url after: %v", sURL)
 	}
 
 	return err
