@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -82,6 +83,8 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Printf("handler PostURL: %s", sURL)
+
 	w.WriteHeader(header)
 	_, err = w.Write([]byte(sURL))
 	if err != nil {
@@ -134,6 +137,8 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("handler JSONPost: %s", b)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(header)
