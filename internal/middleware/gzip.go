@@ -22,6 +22,7 @@ func GZIPWriterMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get(echo.HeaderAcceptEncoding), "gzip") {
 			next.ServeHTTP(w, r)
+			return
 		}
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
