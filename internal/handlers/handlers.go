@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
+	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/serializers"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
@@ -35,6 +36,8 @@ func (h *handler) SetupRouting() {
 
 	h.Router.Post("/api/shorten/batch", h.ShortenBatch)
 	h.Router.Get("/ping", h.PingPG)
+
+	h.Router.Get("/user/urls", h.GetUserURLs)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -69,9 +72,13 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("url: %s", u)
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
-	sURL, err := h.s.Store(u)
+	sURL, err := h.s.Store(&model.URL{URL: u, UserId: user})
 
 	var pgErr *pgconn.PgError
 	header := http.StatusCreated
@@ -84,8 +91,6 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	log.Printf("result: %s", sURL)
 
 	w.WriteHeader(header)
 	_, err = w.Write([]byte(sURL))
@@ -110,6 +115,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 
 	url, err := s.Decode(b)
 	if err != nil {
+		log.Printf("err - %v", err)
 		if errors.Is(err, json.ErrorEmptyURL) {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
@@ -119,9 +125,15 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("url: %s", url)
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	url.UserId = user
 
-	sURL, err := h.s.Store(url.URL)
+	log.Printf("url - %v", url)
+	sURL, err := h.s.Store(url)
 
 	var pgErr *pgconn.PgError
 	header := http.StatusCreated
@@ -130,6 +142,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			header = http.StatusConflict
 		} else {
+			log.Printf("error - %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -142,8 +155,6 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("result: %s", b)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(header)
 	_, err = w.Write(b)
@@ -152,6 +163,46 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	// token, err := r.Cookie("token")
+	// if err != nil {
+	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	// 	return
+	// }
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("handler - %s", user)
+	URLs, err := h.s.GetUserURLs(user)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	b, err := s.EncodeURLBatch(URLs)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(b)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {

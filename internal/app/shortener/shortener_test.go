@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/stretchr/testify/assert"
 )
@@ -72,9 +73,10 @@ func Test_shortener_Store(t *testing.T) {
 		},
 	)
 	tests := []struct {
-		name    string
-		fields  fields
-		urls    []string
+		name   string
+		fields fields
+		// urls    []string
+		urls    []model.URL
 		wantErr bool
 	}{
 		{
@@ -82,7 +84,8 @@ func Test_shortener_Store(t *testing.T) {
 			fields: fields{
 				r: storage,
 			},
-			urls:    []string{"google.com", "yandex.ru", "yahoo.com", "google.com", "yandex.ru", "yahoo.com"},
+			// urls:    []string{"google.com", "yandex.ru", "yahoo.com", "google.com", "yandex.ru", "yahoo.com"},
+			urls:    []model.URL{model.URL{URL: "google.com"}, model.URL{URL: "yandex.ru"}, model.URL{URL: "yahoo.com"}, model.URL{URL: "google.com"}, model.URL{URL: "yandex.ru"}, model.URL{URL: "yahoo.com"}},
 			wantErr: false,
 		},
 	}
@@ -93,7 +96,7 @@ func Test_shortener_Store(t *testing.T) {
 			}
 			shortURLs := make(map[string]int)
 			for _, v := range tt.urls {
-				got, err := s.Store(v)
+				got, err := s.Store(&v)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("shortener.Store() error = %v, wantErr %v", err, tt.wantErr)
 					return

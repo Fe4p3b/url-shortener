@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/teris-io/shortid"
@@ -12,8 +13,9 @@ import (
 
 type ShortenerService interface {
 	Find(string) (string, error)
-	Store(string) (string, error)
+	Store(*model.URL) (string, error)
 	StoreBatch([]repositories.URL) ([]repositories.URL, error)
+	GetUserURLs(string) ([]repositories.URL, error)
 	Ping() error
 }
 
@@ -33,22 +35,27 @@ func (s *shortener) Find(url string) (string, error) {
 	return s.r.Find(url)
 }
 
-func (s *shortener) Store(url string) (string, error) {
+func (s *shortener) Store(url *model.URL) (string, error) {
 	uuid, err := shortid.Generate()
 	if err != nil {
 		return "", err
 	}
 
-	err = s.r.Save(&uuid, url)
+	url.ShortURL = uuid
+	err = s.r.Save(url)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return fmt.Sprintf("%s/%s", s.BaseURL, uuid), err
+			return fmt.Sprintf("%s/%s", s.BaseURL, url.ShortURL), err
 		}
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/%s", s.BaseURL, uuid), nil
+	return fmt.Sprintf("%s/%s", s.BaseURL, url.ShortURL), nil
+}
+
+func (s *shortener) GetUserURLs(user string) ([]repositories.URL, error) {
+	return s.r.GetUserURLs(user)
 }
 
 func (s *shortener) Ping() error {

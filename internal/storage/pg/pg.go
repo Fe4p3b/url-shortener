@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -30,7 +31,7 @@ func NewConnection(dsn string) (*pg, error) {
 }
 
 func (p *pg) CreateShortenerTable() error {
-	sql, err := os.ReadFile("./migrations/001_migration.sql")
+	sql, err := os.ReadFile("../../migrations/001_migration.sql")
 	if err != nil {
 		return err
 	}
@@ -74,13 +75,14 @@ func (p *pg) Find(sURL string) (string, error) {
 	return URL, nil
 }
 
-func (p *pg) Save(sURL *string, URL string) error {
+// func (p *pg) Save(sURL *string, URL string) error {
+func (p *pg) Save(url *model.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	sql := `INSERT INTO shortener.shortener(short_url, original_url, user_id) VALUES($1, $2, $3)`
 
-	_, err := p.db.ExecContext(ctx, sql, sURL, URL, "asdf")
+	_, err := p.db.ExecContext(ctx, sql, url.ShortURL, url.URL, url.UserId)
 	if err == nil {
 		return nil
 	}
@@ -88,13 +90,34 @@ func (p *pg) Save(sURL *string, URL string) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		sql := `SELECT short_url FROM shortener.shortener WHERE original_url=$1`
-		row := p.db.QueryRowContext(ctx, sql, URL)
-		if err := row.Scan(sURL); err != nil {
+		row := p.db.QueryRowContext(ctx, sql, url.URL)
+		if err := row.Scan(&url.ShortURL); err != nil {
 			return err
 		}
 	}
 
 	return err
+}
+
+func (p *pg) GetUserURLs(user string) (URLs []repositories.URL, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	sql := `SELECT short_url, original_url FROM shortener.shortener WHERE user_id=$1`
+
+	rows, err := p.db.QueryContext(ctx, sql, user)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var URL repositories.URL
+		if err := rows.Scan(&URL.ShortURL, &URL.URL); err != nil {
+			return nil, err
+		}
+		URLs = append(URLs, URL)
+	}
+	return
 }
 
 func (p *pg) AddURLBuffer(u repositories.URL) error {
