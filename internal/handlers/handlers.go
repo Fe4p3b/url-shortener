@@ -179,6 +179,11 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(URLs) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	b, err := s.EncodeURLBatch(URLs)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

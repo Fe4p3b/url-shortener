@@ -190,9 +190,9 @@ func (p *pg) VerifyUser(user string) error {
 	sql := `SELECT id FROM shortener.users WHERE id=$1`
 
 	row := p.db.QueryRowContext(ctx, sql, user)
-	var exists bool
+	var uuid string
 
-	if err := row.Scan(&exists); err != nil {
+	if err := row.Scan(&uuid); err != nil {
 		return err
 	}
 

@@ -19,55 +19,54 @@ type AuthService interface {
 
 type Auth struct {
 	r   repositories.AuthRepository
-	key []byte
+	key [32]byte
 }
 
 var _ AuthService = &Auth{}
 
 func NewAuth(key []byte, r repositories.AuthRepository) *Auth {
-	return &Auth{key: key, r: r}
+	return &Auth{key: sha256.Sum256([]byte(key)), r: r}
 }
 
 func (a *Auth) CreateUser() (string, error) {
 	return a.r.CreateUser()
 }
 
-func (a *Auth) Encrypt(src string) (string, error) {
-	key := sha256.Sum256([]byte(a.key))
-
-	aesblock, err := aes.NewCipher(key[:])
+func (a *Auth) GetAesgcm() (cipher.AEAD, error) {
+	aesblock, err := aes.NewCipher(a.key[:])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	aesgcm, err := cipher.NewGCM(aesblock)
 	if err != nil {
+		return nil, err
+	}
+
+	return aesgcm, nil
+}
+
+func (a *Auth) Encrypt(src string) (string, error) {
+	aesgcm, err := a.GetAesgcm()
+	if err != nil {
 		return "", err
 	}
 
-	nonce := key[len(key)-aesgcm.NonceSize():]
+	nonce := a.key[len(a.key)-aesgcm.NonceSize():]
 	dst := (aesgcm.Seal(nil, nonce, []byte(src), nil))
 	return fmt.Sprintf("%x", dst), nil
 }
 
 func (a *Auth) Decrypt(src string) ([]byte, error) {
-	key := sha256.Sum256([]byte(a.key))
-
-	aesblock, err := aes.NewCipher(key[:])
+	aesgcm, err := a.GetAesgcm()
 	if err != nil {
 		return nil, err
 	}
 
-	aesgcm, err := cipher.NewGCM(aesblock)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := key[len(key)-aesgcm.NonceSize():]
-
+	nonce := a.key[len(a.key)-aesgcm.NonceSize():]
 	encrypted, err := hex.DecodeString(src)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	dst, err := aesgcm.Open(nil, nonce, encrypted, nil)
