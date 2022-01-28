@@ -34,7 +34,7 @@ func (h *handler) SetupRouting() {
 	h.Router.Post("/api/shorten", h.JSONPost)
 
 	h.Router.Post("/api/shorten/batch", h.ShortenBatch)
-	h.Router.Get("/ping", h.PingPG)
+	h.Router.Get("/ping", h.Ping)
 
 	h.Router.Get("/user/urls", h.GetUserURLs)
 }
@@ -57,6 +57,12 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -68,12 +74,6 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	_, err = url.Parse(u)
 	if err != nil || len(u) == 0 {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	user, ok := r.Context().Value(middleware.Key).(string)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -158,18 +158,17 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
 }
 
 func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
-	s, err := serializers.GetSerializer("json")
-	if err != nil {
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	user, ok := r.Context().Value(middleware.Key).(string)
-	if !ok {
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -196,6 +195,12 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
 	s, err := serializers.GetSerializer("json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -211,12 +216,6 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	batch, err := s.DecodeURLBatch(b)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	user, ok := r.Context().Value(middleware.Key).(string)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -241,7 +240,7 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handler) PingPG(w http.ResponseWriter, r *http.Request) {
+func (h *handler) Ping(w http.ResponseWriter, r *http.Request) {
 	if err := h.s.Ping(); err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

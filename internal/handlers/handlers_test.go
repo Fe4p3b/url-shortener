@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
+	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -149,15 +150,13 @@ func Test_httpHandler_post(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewHandler(tt.fields.s)
 
-			f := make(url.Values)
-			f.Set("url", tt.fields.body)
-
-			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(f.Encode()))
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			ctx := context.WithValue(context.Background(), middleware.Key, "asdfg")
 
 			w := httptest.NewRecorder()
 
-			h.PostURL(w, request)
+			h.PostURL(w, request.WithContext(ctx))
 
 			assert.Equal(t, tt.want.code, w.Code)
 			if tt.want.response != "" {
@@ -247,10 +246,11 @@ func Test_handler_JsonPost(t *testing.T) {
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(context.Background(), middleware.Key, "asdfg")
 
 			w := httptest.NewRecorder()
 
-			h.JSONPost(w, request)
+			h.JSONPost(w, request.WithContext(ctx))
 
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
