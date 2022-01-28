@@ -10,7 +10,6 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/go-chi/chi/v5"
-	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -247,14 +246,14 @@ func Test_handler_JsonPost(t *testing.T) {
 			h := NewHandler(tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
-			request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+			request.Header.Set("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()
 
 			h.JSONPost(w, request)
 
 			assert.Equal(t, tt.want.code, w.Code)
-			assert.Equal(t, tt.want.contentType, w.Header().Get(echo.HeaderContentType))
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
 			if tt.want.response != "" {
 				assert.Equal(t, tt.want.response, w.Body.String())
 			}

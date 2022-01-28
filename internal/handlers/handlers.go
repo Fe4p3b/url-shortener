@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -115,7 +114,6 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 
 	url, err := s.Decode(b)
 	if err != nil {
-		log.Printf("err - %v", err)
 		if errors.Is(err, json.ErrorEmptyURL) {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
@@ -132,7 +130,6 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	}
 	url.UserId = user
 
-	log.Printf("url - %v", url)
 	sURL, err := h.s.Store(url)
 
 	var pgErr *pgconn.PgError
@@ -142,7 +139,6 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			header = http.StatusConflict
 		} else {
-			log.Printf("error - %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -172,18 +168,12 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// token, err := r.Cookie("token")
-	// if err != nil {
-	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	// 	return
-	// }
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("handler - %s", user)
 	URLs, err := h.s.GetUserURLs(user)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -224,7 +214,13 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sURLBatch, err := h.s.StoreBatch(batch)
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	sURLBatch, err := h.s.StoreBatch(user, batch)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

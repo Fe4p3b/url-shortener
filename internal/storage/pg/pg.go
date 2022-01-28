@@ -31,7 +31,7 @@ func NewConnection(dsn string) (*pg, error) {
 }
 
 func (p *pg) CreateShortenerTable() error {
-	sql, err := os.ReadFile("../../migrations/001_migration.sql")
+	sql, err := os.ReadFile("./migrations/001_migration.sql")
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (p *pg) Flush() error {
 	}
 
 	for _, v := range p.buffer {
-		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, ""); err != nil {
+		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, v.UserId); err != nil {
 			if err := tx.Rollback(); err != nil {
 				return err
 			}

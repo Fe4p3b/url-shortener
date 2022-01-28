@@ -2,70 +2,53 @@ package middleware
 
 import (
 	"context"
-	"crypto/aes"
-	"log"
+	"fmt"
 	"net/http"
 
-	"github.com/teris-io/shortid"
+	"github.com/Fe4p3b/url-shortener/internal/app/auth"
 )
 
 type ContextKey string
 
 var Key ContextKey = "user"
 
-func Auth(next http.Handler) http.Handler {
+type AuthMiddleware struct {
+	auth auth.AuthService
+}
+
+func NewAuthMiddleware(auth auth.AuthService) *AuthMiddleware {
+	return &AuthMiddleware{auth: auth}
+}
+
+func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("token")
 		if err != nil {
-			// uuid := uuid.NewString()
-			uuid, err := shortid.Generate()
+			uuid := a.auth.GenerateUUID()
+
+			user, err := a.auth.Encrypt(uuid)
 			if err != nil {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
-			// b, err := Generate(uuid)
-			// if err != nil {
-			// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			// 	return
-			// }
+			fmt.Printf("encrypted %s\n", user)
 
-			log.Printf("uuid - %v, token - %s", uuid, "")
-			http.SetCookie(w, &http.Cookie{Name: "token", Value: string(uuid)})
-			next.ServeHTTP(w, r)
+			http.SetCookie(w, &http.Cookie{Name: "token", Value: user})
+			ctx := context.WithValue(r.Context(), Key, uuid)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 
-		// log.Printf("token - %v", token)
+		user, err := a.auth.Decrypt(token.Value)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 
-		// key := []byte("qwertyuioasdfghjqwertyuioasdfghj")
+		fmt.Printf("decrypted: %s\n", user)
 
-		// aesblock, err := aes.NewCipher(key)
-		// if err != nil {
-		// 	fmt.Printf("error: %v\n", err)
-		// 	return
-		// }
-
-		// fmt.Printf("encrypted: %s\n", token.Value)
-		// src := make([]byte, len(key)) // расшифровываем
-		// aesblock.Decrypt(src, []byte(token.Value))
-		// fmt.Printf("decrypted: %s\n", src)
-
-		ctx := context.WithValue(r.Context(), Key, token.Value)
+		ctx := context.WithValue(r.Context(), Key, string(user))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func Generate(src string) ([]byte, error) {
-	key := []byte("qwertyuioasdfghj")
-	// qwert yuioa sdfgh jqwer tyuio asdfghj
-	aesblock, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("src - %s", []byte(src))
-	dst := make([]byte, len(key)) // зашифровываем
-	aesblock.Encrypt(dst, []byte(src))
-	return dst, nil
 }

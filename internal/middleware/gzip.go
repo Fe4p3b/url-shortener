@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/labstack/echo/v4"
 )
 
 type gzipWriter struct {
@@ -20,7 +18,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GZIPWriterMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get(echo.HeaderAcceptEncoding), "gzip") {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -33,14 +31,14 @@ func GZIPWriterMiddleware(next http.Handler) http.Handler {
 		}
 		defer gz.Close()
 
-		w.Header().Set(echo.HeaderContentEncoding, "gzip")
+		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
 }
 
 func GZIPReaderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(echo.HeaderContentEncoding) == "gzip" {
+		if r.Header.Get("Content-Encoding") == "gzip" {
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
