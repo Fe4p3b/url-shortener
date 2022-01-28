@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"gopkg.in/yaml.v2"
@@ -63,8 +63,7 @@ func (f *file) Find(url string) (s string, err error) {
 	return
 }
 
-// func (f *file) Save(uuid *string, url string) error {
-func (f *file) Save(url *model.URL) error {
+func (f *file) Save(url *models.URL) error {
 	if err := f.m.Save(url); err != nil {
 		return err
 	}

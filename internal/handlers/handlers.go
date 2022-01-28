@@ -8,9 +8,9 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/serializers"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
@@ -77,7 +77,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sURL, err := h.s.Store(&model.URL{URL: u, UserId: user})
+	sURL, err := h.s.Store(&models.URL{URL: u, UserID: user})
 
 	var pgErr *pgconn.PgError
 	header := http.StatusCreated
@@ -100,6 +100,12 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
 	s, err := serializers.GetSerializer("json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -123,13 +129,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok := r.Context().Value(middleware.Key).(string)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	url.UserId = user
-
+	url.UserID = user
 	sURL, err := h.s.Store(url)
 
 	var pgErr *pgconn.PgError
@@ -144,7 +144,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	jsonSURL := &model.ShortURL{ShortURL: sURL}
+	jsonSURL := &models.ShortURL{ShortURL: sURL}
 	b, err = s.Encode(jsonSURL)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

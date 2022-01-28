@@ -28,7 +28,6 @@ func Test_httpHandler_get(t *testing.T) {
 
 	m := memory.NewMemory(map[string]string{
 		"asdf": "http://yandex.ru",
-		// "qwerty": "http://google.com",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
 

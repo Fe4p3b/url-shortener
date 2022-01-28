@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 )
 
 var ErrorEmptyURL error = errors.New("url is not set")
 
 type JSONSerializer struct{}
 
-func (j *JSONSerializer) Encode(s *model.ShortURL) ([]byte, error) {
+func (j *JSONSerializer) Encode(s *models.ShortURL) ([]byte, error) {
 	d, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
@@ -20,8 +20,8 @@ func (j *JSONSerializer) Encode(s *model.ShortURL) ([]byte, error) {
 	return d, nil
 }
 
-func (j *JSONSerializer) Decode(b []byte) (*model.URL, error) {
-	url := &model.URL{}
+func (j *JSONSerializer) Decode(b []byte) (*models.URL, error) {
+	url := &models.URL{}
 	err := json.Unmarshal(b, url)
 	if err != nil {
 		return nil, err

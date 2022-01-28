@@ -90,7 +90,7 @@ func main() {
 
 	s := shortener.NewShortener(pg, cfg.BaseURL)
 
-	auth := auth.NewAuth([]byte(cfg.Secret))
+	auth := auth.NewAuth([]byte(cfg.Secret), pg)
 	authMiddleware := middleware.NewAuthMiddleware(auth)
 
 	h := handlers.NewHandler(s)

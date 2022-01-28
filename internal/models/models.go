@@ -1,8 +1,8 @@
-package model
+package models
 
 type URL struct {
 	URL      string `json:"url"`
-	UserId   string `json:"user_id,omitempty"`
+	UserID   string `json:"user_id,omitempty"`
 	ShortURL string `json:"short_url"`
 }
 

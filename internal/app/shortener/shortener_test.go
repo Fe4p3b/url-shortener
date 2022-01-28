@@ -3,8 +3,8 @@ package shortener
 import (
 	"testing"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/stretchr/testify/assert"
 )
@@ -73,10 +73,9 @@ func Test_shortener_Store(t *testing.T) {
 		},
 	)
 	tests := []struct {
-		name   string
-		fields fields
-		// urls    []string
-		urls    []model.URL
+		name    string
+		fields  fields
+		urls    []models.URL
 		wantErr bool
 	}{
 		{
@@ -84,8 +83,14 @@ func Test_shortener_Store(t *testing.T) {
 			fields: fields{
 				r: storage,
 			},
-			// urls:    []string{"google.com", "yandex.ru", "yahoo.com", "google.com", "yandex.ru", "yahoo.com"},
-			urls:    []model.URL{model.URL{URL: "google.com"}, model.URL{URL: "yandex.ru"}, model.URL{URL: "yahoo.com"}, model.URL{URL: "google.com"}, model.URL{URL: "yandex.ru"}, model.URL{URL: "yahoo.com"}},
+			urls: []models.URL{
+				{URL: "google.com"},
+				{URL: "yandex.ru"},
+				{URL: "yahoo.com"},
+				{URL: "google.com"},
+				{URL: "yandex.ru"},
+				{URL: "yahoo.com"},
+			},
 			wantErr: false,
 		},
 	}

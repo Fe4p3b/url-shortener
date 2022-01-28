@@ -3,8 +3,8 @@ package memory
 import (
 	"sync"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/Fe4p3b/url-shortener/internal/storage"
 )
 
@@ -29,8 +29,7 @@ func (m *Memory) Find(url string) (s string, err error) {
 	return v, nil
 }
 
-// func (m *Memory) Save(uuid *string, url string) error {
-func (m *Memory) Save(url *model.URL) error {
+func (m *Memory) Save(url *models.URL) error {
 	if _, ok := m.S[url.ShortURL]; ok {
 		return storage.ErrorDuplicateShortlink
 	}

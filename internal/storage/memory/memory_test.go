@@ -3,7 +3,7 @@ package memory
 import (
 	"testing"
 
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,8 +53,7 @@ func Test_memory_Save(t *testing.T) {
 		},
 	}
 	type args struct {
-		// url   string
-		url   model.URL
+		url   models.URL
 		short string
 	}
 
@@ -67,14 +66,14 @@ func Test_memory_Save(t *testing.T) {
 		{
 			name: "test case #1",
 			args: args{
-				url: model.URL{URL: "google.com", ShortURL: "qwerty"},
+				url: models.URL{URL: "google.com", ShortURL: "qwerty"},
 			},
 			wantErr: nil,
 		},
 		{
 			name: "test case #2",
 			args: args{
-				url: model.URL{URL: "yahoo.com", ShortURL: "asdf"},
+				url: models.URL{URL: "yahoo.com", ShortURL: "asdf"},
 			},
 			wantErr: storage.ErrorDuplicateShortlink,
 		},

@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -20,6 +20,7 @@ type pg struct {
 }
 
 var _ repositories.ShortenerRepository = &pg{}
+var _ repositories.AuthRepository = &pg{}
 
 func NewConnection(dsn string) (*pg, error) {
 	conn, err := sql.Open("pgx", dsn)
@@ -62,9 +63,7 @@ func (p *pg) Find(sURL string) (string, error) {
 
 	sql := `SELECT original_url FROM shortener.shortener WHERE short_url=$1`
 
-	var (
-		URL string
-	)
+	var URL string
 
 	row := p.db.QueryRowContext(ctx, sql, sURL)
 
@@ -75,14 +74,13 @@ func (p *pg) Find(sURL string) (string, error) {
 	return URL, nil
 }
 
-// func (p *pg) Save(sURL *string, URL string) error {
-func (p *pg) Save(url *model.URL) error {
+func (p *pg) Save(url *models.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	sql := `INSERT INTO shortener.shortener(short_url, original_url, user_id) VALUES($1, $2, $3)`
 
-	_, err := p.db.ExecContext(ctx, sql, url.ShortURL, url.URL, url.UserId)
+	_, err := p.db.ExecContext(ctx, sql, url.ShortURL, url.URL, url.UserID)
 	if err == nil {
 		return nil
 	}
@@ -117,6 +115,10 @@ func (p *pg) GetUserURLs(user string) (URLs []repositories.URL, err error) {
 		}
 		URLs = append(URLs, URL)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return
 }
 
@@ -144,7 +146,7 @@ func (p *pg) Flush() error {
 	}
 
 	for _, v := range p.buffer {
-		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, v.UserId); err != nil {
+		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, v.UserID); err != nil {
 			if err := tx.Rollback(); err != nil {
 				return err
 			}
@@ -162,4 +164,37 @@ func (p *pg) Flush() error {
 
 func (p *pg) Close() error {
 	return p.db.Close()
+}
+
+func (p *pg) CreateUser() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	sql := `INSERT INTO shortener.users VALUES(default) RETURNING id`
+
+	row := p.db.QueryRowContext(ctx, sql)
+
+	var uuid string
+
+	if err := row.Scan(&uuid); err != nil {
+		return "", err
+	}
+
+	return uuid, nil
+}
+
+func (p *pg) VerifyUser(user string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	sql := `SELECT id FROM shortener.users WHERE id=$1`
+
+	row := p.db.QueryRowContext(ctx, sql, user)
+	var exists bool
+
+	if err := row.Scan(&exists); err != nil {
+		return err
+	}
+
+	return nil
 }

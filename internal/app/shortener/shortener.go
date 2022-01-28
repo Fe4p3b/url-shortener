@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/teris-io/shortid"
@@ -13,7 +13,7 @@ import (
 
 type ShortenerService interface {
 	Find(string) (string, error)
-	Store(*model.URL) (string, error)
+	Store(*models.URL) (string, error)
 	StoreBatch(string, []repositories.URL) ([]repositories.URL, error)
 	GetUserURLs(string) ([]repositories.URL, error)
 	Ping() error
@@ -35,7 +35,7 @@ func (s *shortener) Find(url string) (string, error) {
 	return s.r.Find(url)
 }
 
-func (s *shortener) Store(url *model.URL) (string, error) {
+func (s *shortener) Store(url *models.URL) (string, error) {
 	uuid, err := shortid.Generate()
 	if err != nil {
 		return "", err
@@ -69,7 +69,7 @@ func (s *shortener) StoreBatch(user string, urls []repositories.URL) (batch []re
 			return nil, err
 		}
 		v.ShortURL = uuid
-		v.UserId = user
+		v.UserID = user
 
 		if err := s.r.AddURLBuffer(v); err != nil {
 			return nil, err
