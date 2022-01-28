@@ -6,7 +6,7 @@ type ShortenerRepository interface {
 	Find(string) (string, error)
 	Save(*models.URL) error
 	AddURLBuffer(URL) error
-	GetUserURLs(string) ([]URL, error)
+	GetUserURLs(string, string) ([]URL, error)
 	Flush() error
 	Ping() error
 }

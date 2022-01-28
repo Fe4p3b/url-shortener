@@ -40,7 +40,7 @@ func (m *Memory) Save(url *models.URL) error {
 	return nil
 }
 
-func (m *Memory) GetUserURLs(user string) ([]repositories.URL, error) {
+func (m *Memory) GetUserURLs(user string, baseURL string) ([]repositories.URL, error) {
 	return nil, storage.ErrorMethodIsNotImplemented
 }
 

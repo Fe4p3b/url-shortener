@@ -84,7 +84,7 @@ func (f *file) Close() error {
 	return f.file.Close()
 }
 
-func (f *file) GetUserURLs(user string) ([]repositories.URL, error) {
+func (f *file) GetUserURLs(user string, baseURL string) ([]repositories.URL, error) {
 	return nil, storage.ErrorMethodIsNotImplemented
 }
 

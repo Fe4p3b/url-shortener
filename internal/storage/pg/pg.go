@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -97,7 +98,7 @@ func (p *pg) Save(url *models.URL) error {
 	return err
 }
 
-func (p *pg) GetUserURLs(user string) (URLs []repositories.URL, err error) {
+func (p *pg) GetUserURLs(user string, baseURL string) (URLs []repositories.URL, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -113,6 +114,8 @@ func (p *pg) GetUserURLs(user string) (URLs []repositories.URL, err error) {
 		if err := rows.Scan(&URL.ShortURL, &URL.URL); err != nil {
 			return nil, err
 		}
+
+		URL.ShortURL = fmt.Sprintf("%s/%s", baseURL, URL.ShortURL)
 		URLs = append(URLs, URL)
 	}
 	if err := rows.Err(); err != nil {

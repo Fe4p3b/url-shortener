@@ -55,7 +55,7 @@ func (s *shortener) Store(url *models.URL) (string, error) {
 }
 
 func (s *shortener) GetUserURLs(user string) ([]repositories.URL, error) {
-	return s.r.GetUserURLs(user)
+	return s.r.GetUserURLs(user, s.BaseURL)
 }
 
 func (s *shortener) Ping() error {
