@@ -138,6 +138,10 @@ func (p *pg) AddURLBuffer(u repositories.URL) error {
 }
 
 func (p *pg) Flush() error {
+	if len(p.buffer) == 0 {
+		return nil
+	}
+
 	tx, err := p.db.Begin()
 	if err != nil {
 		return err

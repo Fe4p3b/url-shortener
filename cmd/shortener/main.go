@@ -36,30 +36,30 @@ func setConfig(cfg *Config) error {
 		secret          string
 	)
 
-	flag.StringVar(&address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
-	flag.StringVar(&baseURL, "b", "http://localhost:8080", "Базовый адрес результирующего сокращённого URL")
-	flag.StringVar(&fileStoragePath, "f", "/tmp/url_shortener_storage", "Путь до файла с сокращёнными URL")
-	flag.StringVar(&databaseDSN, "d", "postgres://postgres:12345@localhost:5432/shortener?sslmode=disable", "Строка с адресом подключения к БД")
-	flag.StringVar(&secret, "s", "x35k9f", "Код для шифровки и дешифровки")
+	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
+	flag.StringVar(&baseURL, "b", "", "Базовый адрес результирующего сокращённого URL")
+	flag.StringVar(&fileStoragePath, "f", "", "Путь до файла с сокращёнными URL")
+	flag.StringVar(&databaseDSN, "d", "", "Строка с адресом подключения к БД")
+	flag.StringVar(&secret, "s", "", "Код для шифровки и дешифровки")
 	flag.Parse()
 
-	if address != "localhost:8080" {
+	if address != "" {
 		cfg.Address = address
 	}
 
-	if baseURL != "http://localhost:8080" {
+	if baseURL != "" {
 		cfg.BaseURL = baseURL
 	}
 
-	if fileStoragePath != "/tmp/url_shortener_storage" {
+	if fileStoragePath != "" {
 		cfg.FileStoragePath = fileStoragePath
 	}
 
-	if databaseDSN != "postgres://postgres:12345@localhost:5432/shortener?sslmode=disable" {
+	if databaseDSN != "" {
 		cfg.DatabaseDSN = databaseDSN
 	}
 
-	if secret != "x35k9f" {
+	if secret != "" {
 		cfg.Secret = secret
 	}
 
