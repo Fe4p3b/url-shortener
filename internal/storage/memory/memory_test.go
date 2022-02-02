@@ -3,6 +3,7 @@ package memory
 import (
 	"testing"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,7 +53,7 @@ func Test_memory_Save(t *testing.T) {
 		},
 	}
 	type args struct {
-		url   string
+		url   models.URL
 		short string
 	}
 
@@ -65,31 +66,29 @@ func Test_memory_Save(t *testing.T) {
 		{
 			name: "test case #1",
 			args: args{
-				url:   "google.com",
-				short: "qwerty",
+				url: models.URL{URL: "google.com", ShortURL: "qwerty"},
 			},
 			wantErr: nil,
 		},
 		{
 			name: "test case #2",
 			args: args{
-				url:   "yahoo.com",
-				short: "asdf",
+				url: models.URL{URL: "yahoo.com", ShortURL: "asdf"},
 			},
 			wantErr: storage.ErrorDuplicateShortlink,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.Save(tt.args.short, tt.args.url)
+			err := s.Save(&tt.args.url)
 
-			if err != nil && err != tt.wantErr {
-				t.Errorf("Find() error = %v, wantErr = %v", err, tt.wantErr)
+			if tt.wantErr != nil {
+				assert.Error(t, tt.wantErr, err)
+			} else {
+				assert.NoError(t, tt.wantErr, err)
 			}
-
-			if _, ok := s.S[tt.args.short]; !ok && tt.wantErr == nil {
-				t.Errorf("Find() value %v not found", err)
-			}
+			_, ok := s.S[tt.args.url.ShortURL]
+			assert.Equal(t, true, ok)
 
 		})
 	}

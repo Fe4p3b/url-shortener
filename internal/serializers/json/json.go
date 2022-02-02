@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/Fe4p3b/url-shortener/internal/serializers/model"
+	"github.com/Fe4p3b/url-shortener/internal/models"
+	"github.com/Fe4p3b/url-shortener/internal/repositories"
 )
 
 var ErrorEmptyURL error = errors.New("url is not set")
 
 type JSONSerializer struct{}
 
-func (j *JSONSerializer) Encode(s *model.ShortURL) ([]byte, error) {
+func (j *JSONSerializer) Encode(s *models.ShortURL) ([]byte, error) {
 	d, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
@@ -19,8 +20,8 @@ func (j *JSONSerializer) Encode(s *model.ShortURL) ([]byte, error) {
 	return d, nil
 }
 
-func (j *JSONSerializer) Decode(b []byte) (*model.URL, error) {
-	url := &model.URL{}
+func (j *JSONSerializer) Decode(b []byte) (*models.URL, error) {
+	url := &models.URL{}
 	err := json.Unmarshal(b, url)
 	if err != nil {
 		return nil, err
@@ -30,4 +31,20 @@ func (j *JSONSerializer) Decode(b []byte) (*model.URL, error) {
 		return nil, ErrorEmptyURL
 	}
 	return url, nil
+}
+
+func (j *JSONSerializer) DecodeURLBatch(b []byte) (batch []repositories.URL, err error) {
+	err = json.Unmarshal(b, &batch)
+	if err != nil {
+		return nil, err
+	}
+	return batch, nil
+}
+
+func (j *JSONSerializer) EncodeURLBatch(batch []repositories.URL) (b []byte, err error) {
+	b, err = json.Marshal(batch)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

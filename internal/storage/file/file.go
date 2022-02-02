@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"gopkg.in/yaml.v2"
 )
@@ -61,12 +63,12 @@ func (f *file) Find(url string) (s string, err error) {
 	return
 }
 
-func (f *file) Save(uuid string, url string) error {
-	if err := f.m.Save(uuid, url); err != nil {
+func (f *file) Save(url *models.URL) error {
+	if err := f.m.Save(url); err != nil {
 		return err
 	}
 
-	data, err := yaml.Marshal(&map[string]string{uuid: url})
+	data, err := yaml.Marshal(&map[string]string{url.ShortURL: url.URL})
 	if err != nil {
 		return err
 	}
@@ -80,4 +82,20 @@ func (f *file) Save(uuid string, url string) error {
 
 func (f *file) Close() error {
 	return f.file.Close()
+}
+
+func (f *file) GetUserURLs(user string, baseURL string) ([]repositories.URL, error) {
+	return nil, storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) Ping() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) AddURLBuffer(repositories.URL) error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
 }

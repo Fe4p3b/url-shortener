@@ -3,6 +3,7 @@ package memory
 import (
 	"sync"
 
+	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/Fe4p3b/url-shortener/internal/storage"
 )
@@ -28,13 +29,29 @@ func (m *Memory) Find(url string) (s string, err error) {
 	return v, nil
 }
 
-func (m *Memory) Save(uuid string, url string) error {
-	if _, ok := m.S[uuid]; ok {
+func (m *Memory) Save(url *models.URL) error {
+	if _, ok := m.S[url.ShortURL]; ok {
 		return storage.ErrorDuplicateShortlink
 	}
 
 	m.Lock()
-	m.S[uuid] = url
+	m.S[url.ShortURL] = url.URL
 	m.Unlock()
 	return nil
+}
+
+func (m *Memory) GetUserURLs(user string, baseURL string) ([]repositories.URL, error) {
+	return nil, storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) Ping() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) AddURLBuffer(repositories.URL) error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
 }
