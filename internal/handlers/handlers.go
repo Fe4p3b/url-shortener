@@ -37,6 +37,7 @@ func (h *handler) SetupRouting() {
 	h.Router.Get("/ping", h.Ping)
 
 	h.Router.Get("/user/urls", h.GetUserURLs)
+	h.Router.Delete("/api/user/urls", h.DeleteUserURLs)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +198,11 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *handler) DeleteUserURLs(w http.ResponseWriter, r *http.Request) {
+
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
