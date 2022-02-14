@@ -3,6 +3,8 @@ package shortener
 import (
 	"errors"
 	"fmt"
+	"log"
+	"sync"
 
 	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
@@ -12,10 +14,11 @@ import (
 )
 
 type ShortenerService interface {
-	Find(string) (string, error)
+	Find(string) (*repositories.URL, error)
 	Store(*models.URL) (string, error)
 	StoreBatch(string, []repositories.URL) ([]repositories.URL, error)
 	GetUserURLs(string) ([]repositories.URL, error)
+	DeleteURLs(string, []string)
 	Ping() error
 }
 
@@ -31,7 +34,7 @@ func NewShortener(r repositories.ShortenerRepository, u string) *shortener {
 	}
 }
 
-func (s *shortener) Find(url string) (string, error) {
+func (s *shortener) Find(url string) (*repositories.URL, error) {
 	return s.r.Find(url)
 }
 
@@ -84,6 +87,27 @@ func (s *shortener) StoreBatch(user string, urls []repositories.URL) (batch []re
 	}
 
 	return
+}
+
+func (s *shortener) DeleteURLs(user string, URLs []string) {
+	go func() {
+		go func() {
+			if err := s.r.FlushToDelete(); err != nil {
+				log.Println(err)
+			}
+		}()
+
+		wg := &sync.WaitGroup{}
+		for _, url := range URLs {
+			wg.Add(1)
+			go func(url string) {
+				defer wg.Done()
+				s.r.AddURLToDelete(repositories.URL{ShortURL: url, UserID: user})
+			}(url)
+		}
+		wg.Wait()
+	}()
+
 }
 
 var _ ShortenerService = &shortener{}

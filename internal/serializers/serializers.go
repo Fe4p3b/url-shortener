@@ -3,16 +3,12 @@ package serializers
 import (
 	"errors"
 
-	"github.com/Fe4p3b/url-shortener/internal/models"
-	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
 )
 
 type Serializer interface {
-	Encode(s *models.ShortURL) ([]byte, error)
-	Decode([]byte) (*models.URL, error)
-	DecodeURLBatch([]byte) ([]repositories.URL, error)
-	EncodeURLBatch([]repositories.URL) ([]byte, error)
+	Encode(interface{}) ([]byte, error)
+	Decode([]byte, interface{}) error
 }
 
 var _ Serializer = &json.JSONSerializer{}

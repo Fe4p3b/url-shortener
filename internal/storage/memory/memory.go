@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"log"
 	"sync"
 
 	"github.com/Fe4p3b/url-shortener/internal/models"
@@ -21,12 +22,19 @@ func NewMemory(s map[string]string) *Memory {
 	}
 }
 
-func (m *Memory) Find(url string) (s string, err error) {
+func (m *Memory) Find(url string) (u *repositories.URL, err error) {
 	v, ok := m.S[url]
+	log.Println(v)
+
 	if !ok {
-		return "", storage.ErrorNoLinkFound
+		log.Println(ok)
+
+		return nil, storage.ErrorNoLinkFound
 	}
-	return v, nil
+	u = &repositories.URL{}
+	u.URL = v
+	log.Println(u)
+	return
 }
 
 func (m *Memory) Save(url *models.URL) error {
@@ -53,5 +61,12 @@ func (m *Memory) AddURLBuffer(repositories.URL) error {
 }
 
 func (m *Memory) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) AddURLToDelete(u repositories.URL) {
+}
+
+func (m *Memory) FlushToDelete() error {
 	return storage.ErrorMethodIsNotImplemented
 }

@@ -10,8 +10,8 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/models"
+	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/Fe4p3b/url-shortener/internal/serializers"
-	"github.com/Fe4p3b/url-shortener/internal/serializers/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
@@ -55,7 +55,12 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	if url.IsDeleted {
+		http.Error(w, http.StatusText(http.StatusGone), http.StatusGone)
+		return
+	}
+
+	http.Redirect(w, r, url.URL, http.StatusTemporaryRedirect)
 }
 
 func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +84,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println(user)
 	sURL, err := h.s.Store(&models.URL{URL: u, UserID: user})
 
 	var pgErr *pgconn.PgError
@@ -120,18 +126,21 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := s.Decode(b)
-	if err != nil {
-		if errors.Is(err, json.ErrorEmptyURL) {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
+	url := &models.URL{}
+	if err := s.Decode(b, url); err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
+	if url.URL == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
 	url.UserID = user
+
+	log.Println(url)
+
 	sURL, err := h.s.Store(url)
 
 	var pgErr *pgconn.PgError
@@ -175,6 +184,8 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println(user)
+
 	URLs, err := h.s.GetUserURLs(user)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -186,7 +197,7 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := s.EncodeURLBatch(URLs)
+	b, err := s.Encode(URLs)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -202,13 +213,32 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) DeleteUserURLs(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(middleware.Key).(string)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("%s", b)
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	URLs := make([]string, 0)
+
+	if err := s.Decode(b, &URLs); err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	h.s.DeleteURLs(user, URLs)
 
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -232,19 +262,20 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch, err := s.DecodeURLBatch(b)
-	if err != nil {
+	batch := &[]repositories.URL{}
+	if err := s.Decode(b, batch); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	sURLBatch, err := h.s.StoreBatch(user, batch)
+	log.Println(*batch)
+	sURLBatch, err := h.s.StoreBatch(user, *batch)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	b, err = s.EncodeURLBatch(sURLBatch)
+	b, err = s.Encode(sURLBatch)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
