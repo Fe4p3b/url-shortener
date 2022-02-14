@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -84,7 +83,6 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(user)
 	sURL, err := h.s.Store(&models.URL{URL: u, UserID: user})
 
 	var pgErr *pgconn.PgError
@@ -139,8 +137,6 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 
 	url.UserID = user
 
-	log.Println(url)
-
 	sURL, err := h.s.Store(url)
 
 	var pgErr *pgconn.PgError
@@ -183,8 +179,6 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-
-	log.Println(user)
 
 	URLs, err := h.s.GetUserURLs(user)
 	if err != nil {
@@ -233,7 +227,6 @@ func (h *handler) DeleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	URLs := make([]string, 0)
 
 	if err := s.Decode(b, &URLs); err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -268,7 +261,6 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(*batch)
 	sURLBatch, err := h.s.StoreBatch(user, *batch)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

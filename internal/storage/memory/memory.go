@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"log"
 	"sync"
 
 	"github.com/Fe4p3b/url-shortener/internal/models"
@@ -24,16 +23,13 @@ func NewMemory(s map[string]string) *Memory {
 
 func (m *Memory) Find(url string) (u *repositories.URL, err error) {
 	v, ok := m.S[url]
-	log.Println(v)
 
 	if !ok {
-		log.Println(ok)
 
 		return nil, storage.ErrorNoLinkFound
 	}
 	u = &repositories.URL{}
 	u.URL = v
-	log.Println(u)
 	return
 }
 

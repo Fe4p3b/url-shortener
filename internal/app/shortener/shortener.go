@@ -1,6 +1,7 @@
 package shortener
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/teris-io/shortid"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type ShortenerService interface {
@@ -91,11 +94,15 @@ func (s *shortener) StoreBatch(user string, urls []repositories.URL) (batch []re
 
 func (s *shortener) DeleteURLs(user string, URLs []string) {
 	go func() {
-		go func() {
+		g, _ := errgroup.WithContext(context.Background())
+
+		g.Go(func() error {
 			if err := s.r.FlushToDelete(); err != nil {
-				log.Println(err)
+				return err
 			}
-		}()
+
+			return nil
+		})
 
 		wg := &sync.WaitGroup{}
 		for _, url := range URLs {
@@ -106,6 +113,10 @@ func (s *shortener) DeleteURLs(user string, URLs []string) {
 			}(url)
 		}
 		wg.Wait()
+
+		if err := g.Wait(); err != nil {
+			log.Printf("error deleting urls for user: %v", err)
+		}
 	}()
 
 }
