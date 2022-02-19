@@ -1,21 +1,27 @@
 package shortener
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
+	"sync"
 
 	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/teris-io/shortid"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type ShortenerService interface {
-	Find(string) (string, error)
+	Find(string) (*repositories.URL, error)
 	Store(*models.URL) (string, error)
 	StoreBatch(string, []repositories.URL) ([]repositories.URL, error)
 	GetUserURLs(string) ([]repositories.URL, error)
+	DeleteURLs(string, []string)
 	Ping() error
 }
 
@@ -31,7 +37,7 @@ func NewShortener(r repositories.ShortenerRepository, u string) *shortener {
 	}
 }
 
-func (s *shortener) Find(url string) (string, error) {
+func (s *shortener) Find(url string) (*repositories.URL, error) {
 	return s.r.Find(url)
 }
 
@@ -84,6 +90,35 @@ func (s *shortener) StoreBatch(user string, urls []repositories.URL) (batch []re
 	}
 
 	return
+}
+
+func (s *shortener) DeleteURLs(user string, URLs []string) {
+	go func() {
+		g, _ := errgroup.WithContext(context.Background())
+
+		g.Go(func() error {
+			if err := s.r.FlushToDelete(); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		wg := &sync.WaitGroup{}
+		for _, url := range URLs {
+			wg.Add(1)
+			go func(url string) {
+				defer wg.Done()
+				s.r.AddURLToDelete(repositories.URL{ShortURL: url, UserID: user})
+			}(url)
+		}
+		wg.Wait()
+
+		if err := g.Wait(); err != nil {
+			log.Printf("error deleting urls for user: %v", err)
+		}
+	}()
+
 }
 
 var _ ShortenerService = &shortener{}

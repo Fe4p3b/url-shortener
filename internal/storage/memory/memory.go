@@ -21,12 +21,16 @@ func NewMemory(s map[string]string) *Memory {
 	}
 }
 
-func (m *Memory) Find(url string) (s string, err error) {
+func (m *Memory) Find(url string) (u *repositories.URL, err error) {
 	v, ok := m.S[url]
+
 	if !ok {
-		return "", storage.ErrorNoLinkFound
+
+		return nil, storage.ErrorNoLinkFound
 	}
-	return v, nil
+	u = &repositories.URL{}
+	u.URL = v
+	return
 }
 
 func (m *Memory) Save(url *models.URL) error {
@@ -53,5 +57,12 @@ func (m *Memory) AddURLBuffer(repositories.URL) error {
 }
 
 func (m *Memory) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) AddURLToDelete(u repositories.URL) {
+}
+
+func (m *Memory) FlushToDelete() error {
 	return storage.ErrorMethodIsNotImplemented
 }

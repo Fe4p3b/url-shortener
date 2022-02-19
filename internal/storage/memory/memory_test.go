@@ -41,7 +41,9 @@ func Test_memory_Find(t *testing.T) {
 				t.Errorf("Find() error = %v, wantErr = %v", err, tt.wantErr)
 			}
 
-			assert.Equal(t, tt.want, got)
+			if got != nil {
+				assert.Equal(t, tt.want, got.URL)
+			}
 		})
 	}
 }

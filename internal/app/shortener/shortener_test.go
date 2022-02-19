@@ -57,7 +57,9 @@ func Test_shortener_Find(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, tt.want, got)
+			if got != nil {
+				assert.Equal(t, tt.want, got.URL)
+			}
 		})
 	}
 }
@@ -108,7 +110,7 @@ func Test_shortener_Store(t *testing.T) {
 				}
 				shortURLs[got]++
 			}
-			t.Log(shortURLs)
+
 			for k, v := range shortURLs {
 				if v > 1 {
 					t.Errorf("shortener.Store() duplicate short urls generated %v, in %v", k, s.r)

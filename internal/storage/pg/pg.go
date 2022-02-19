@@ -16,8 +16,9 @@ import (
 )
 
 type pg struct {
-	db     *sql.DB
-	buffer []repositories.URL
+	db           *sql.DB
+	buffer       []repositories.URL
+	deleteBuffer chan repositories.URL
 }
 
 var _ repositories.ShortenerRepository = &pg{}
@@ -29,7 +30,7 @@ func NewConnection(dsn string) (*pg, error) {
 		return nil, err
 	}
 
-	return &pg{db: conn, buffer: make([]repositories.URL, 0, 1000)}, nil
+	return &pg{db: conn, buffer: make([]repositories.URL, 0, 1000), deleteBuffer: make(chan repositories.URL, 1)}, nil
 }
 
 func (p *pg) CreateShortenerTable() error {
@@ -58,18 +59,18 @@ func (p *pg) Ping() error {
 	return nil
 }
 
-func (p *pg) Find(sURL string) (string, error) {
+func (p *pg) Find(sURL string) (*repositories.URL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	sql := `SELECT original_url FROM shortener.shortener WHERE short_url=$1`
+	sql := `SELECT original_url, is_deleted FROM shortener.shortener WHERE short_url=$1`
 
-	var URL string
+	URL := &repositories.URL{}
 
 	row := p.db.QueryRowContext(ctx, sql, sURL)
 
-	if err := row.Scan(&URL); err != nil {
-		return "", err
+	if err := row.Scan(&URL.URL, &URL.IsDeleted); err != nil {
+		return nil, err
 	}
 
 	return URL, nil
@@ -102,7 +103,7 @@ func (p *pg) GetUserURLs(user string, baseURL string) (URLs []repositories.URL, 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	sql := `SELECT short_url, original_url FROM shortener.shortener WHERE user_id=$1`
+	sql := `SELECT short_url, original_url FROM shortener.shortener WHERE is_deleted=false and user_id=$1`
 
 	rows, err := p.db.QueryContext(ctx, sql, user)
 	if err != nil {
@@ -128,7 +129,7 @@ func (p *pg) GetUserURLs(user string, baseURL string) (URLs []repositories.URL, 
 func (p *pg) AddURLBuffer(u repositories.URL) error {
 	p.buffer = append(p.buffer, u)
 
-	if cap(p.buffer) == len(p.buffer) {
+	if len(p.buffer) == cap(p.buffer) {
 		if err := p.Flush(); err != nil {
 			return err
 		}
@@ -167,6 +168,43 @@ func (p *pg) Flush() error {
 
 	p.buffer = p.buffer[:0]
 	return nil
+}
+
+func (p *pg) AddURLToDelete(u repositories.URL) {
+	p.deleteBuffer <- u
+}
+
+func (p *pg) FlushToDelete() error {
+	if len(p.deleteBuffer) == 0 {
+		return nil
+	}
+
+	tx, err := p.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("UPDATE shortener.shortener SET is_deleted=true WHERE short_url=$1 and user_id=$2")
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case v := <-p.deleteBuffer:
+			if _, err := stmt.Exec(v.ShortURL, v.UserID); err != nil {
+				if err := tx.Rollback(); err != nil {
+					return err
+				}
+				return err
+			}
+		default:
+			if err := tx.Commit(); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
 }
 
 func (p *pg) Close() error {

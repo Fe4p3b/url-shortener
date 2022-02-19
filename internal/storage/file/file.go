@@ -58,8 +58,8 @@ func NewFile(path string) (*file, error) {
 	return s, nil
 }
 
-func (f *file) Find(url string) (s string, err error) {
-	s, err = f.m.Find(url)
+func (f *file) Find(url string) (u *repositories.URL, err error) {
+	u, err = f.m.Find(url)
 	return
 }
 
@@ -97,5 +97,12 @@ func (f *file) AddURLBuffer(repositories.URL) error {
 }
 
 func (f *file) Flush() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (f *file) AddURLToDelete(u repositories.URL) {
+}
+
+func (f *file) FlushToDelete() error {
 	return storage.ErrorMethodIsNotImplemented
 }
