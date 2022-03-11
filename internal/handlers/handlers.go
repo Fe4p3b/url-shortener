@@ -4,7 +4,6 @@ package handlers
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -273,35 +272,30 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 
 	s, err := serializers.GetSerializer("json")
 	if err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	batch := &[]repositories.URL{}
 	if err := s.Decode(b, batch); err != nil {
-		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	sURLBatch, err := h.s.StoreBatch(user, *batch)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	b, err = s.Encode(sURLBatch)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
