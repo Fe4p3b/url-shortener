@@ -1,3 +1,4 @@
+// Package storage defines errors for storages.
 package storage
 
 import "errors"

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +16,86 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_httpHandler_get(t *testing.T) {
+func Example() {
+	// PostURL request example
+	resp, err := http.Post("http://localhost:8080", "text/plain", bytes.NewReader([]byte("http://google.com")))
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// GetURL request example
+	resp, err = http.Get("http://localhost:8080/xoPnl3ang")
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// ShortenBatch request example
+	resp, err = http.Post(
+		"http://localhost:8080/api/shorten/batch",
+		"application/json",
+		bytes.NewReader([]byte(`
+		[
+			{
+				"correlation_id": "2765399b-d5a3-420c-8de4-f3b7fb19d334",
+				"original_url": "http://aptekaplus1.kz"
+			},
+			{
+				"correlation_id": "2765f94b-d54e-420c-8de4-f3b7fb19d325",
+				"original_url": "http://hltv2.org"
+			}
+		]`),
+		),
+	)
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// GetUserURLs request example
+	resp, err = http.Get("http://localhost:8080/user/urls")
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// JSONPost request example
+	resp, err = http.Post(
+		"http://localhost:8080/api/shorten",
+		"application/json",
+		bytes.NewReader([]byte(`
+		{
+			"url": "http://google.com"
+		}`),
+		),
+	)
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// DeleteUserURLs request example
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/api/user/urls", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+
+	// Ping request example
+	resp, err = http.Get("http://localhost:8080/ping")
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp.Body.Close()
+}
+
+func Test_handler_GetURL(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
 		method string
@@ -93,7 +174,7 @@ func Test_httpHandler_get(t *testing.T) {
 	}
 }
 
-func Test_httpHandler_post(t *testing.T) {
+func Test_handler_PostURL(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
 		method string
@@ -165,7 +246,7 @@ func Test_httpHandler_post(t *testing.T) {
 	}
 }
 
-func Test_handler_JsonPost(t *testing.T) {
+func Test_handler_JSONPost(t *testing.T) {
 	type fields struct {
 		s           shortener.ShortenerService
 		method      string

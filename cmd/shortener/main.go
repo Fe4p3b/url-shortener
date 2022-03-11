@@ -95,7 +95,8 @@ func main() {
 
 	h := handlers.NewHandler(s)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
-	h.SetupRouting()
+	h.SetupAPIRouting()
+	h.SetupProfiling()
 
 	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)

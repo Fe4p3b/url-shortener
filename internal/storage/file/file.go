@@ -1,3 +1,4 @@
+// Package file implements file storage for service.
 package file
 
 import (
@@ -13,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// file implements file storage.
 type file struct {
 	file *os.File
 	rw   *bufio.ReadWriter
@@ -58,11 +60,13 @@ func NewFile(path string) (*file, error) {
 	return s, nil
 }
 
+// Find implements repositories.ShortenerRepository Find method.
 func (f *file) Find(url string) (u *repositories.URL, err error) {
 	u, err = f.m.Find(url)
 	return
 }
 
+// Save implements repositories.ShortenerRepository Save method.
 func (f *file) Save(url *models.URL) error {
 	if err := f.m.Save(url); err != nil {
 		return err
@@ -80,29 +84,36 @@ func (f *file) Save(url *models.URL) error {
 	return f.rw.Writer.Flush()
 }
 
+// Close closes file.
 func (f *file) Close() error {
 	return f.file.Close()
 }
 
+// GetUserURLs implements repositories.ShortenerRepository GetUserURLs method.
 func (f *file) GetUserURLs(user string, baseURL string) ([]repositories.URL, error) {
 	return nil, storage.ErrorMethodIsNotImplemented
 }
 
+// Ping implements repositories.ShortenerRepository Ping method.
 func (f *file) Ping() error {
 	return storage.ErrorMethodIsNotImplemented
 }
 
+// AddURLBuffer implements repositories.ShortenerRepository AddURLBuffer method.
 func (f *file) AddURLBuffer(repositories.URL) error {
 	return storage.ErrorMethodIsNotImplemented
 }
 
+// Flush implements repositories.ShortenerRepository Flush method.
 func (f *file) Flush() error {
 	return storage.ErrorMethodIsNotImplemented
 }
 
+// AddURLToDelete implements repositories.ShortenerRepository AddURLToDelete method.
 func (f *file) AddURLToDelete(u repositories.URL) {
 }
 
+// FlushToDelete implements repositories.ShortenerRepository FlushToDelete method.
 func (f *file) FlushToDelete() error {
 	return storage.ErrorMethodIsNotImplemented
 }
