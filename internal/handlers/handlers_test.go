@@ -3,18 +3,30 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+func NewMock() (*sql.DB, sqlmock.Sqlmock) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		log.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	return db, mock
+}
 
 func Example() {
 	// PostURL request example
@@ -331,6 +343,262 @@ func Test_handler_JSONPost(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			h.JSONPost(w, request.WithContext(ctx))
+
+			assert.Equal(t, tt.want.code, w.Code)
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			if tt.want.response != "" {
+				assert.Equal(t, tt.want.response, w.Body.String())
+			}
+		})
+	}
+}
+
+func Test_handler_GetUserURLs(t *testing.T) {
+	m := memory.NewMemory(map[string]string{
+		"asdf": "yandex.ru",
+	})
+	s := shortener.NewShortener(m, "http://localhost:8080")
+
+	type fields struct {
+		s           shortener.ShortenerService
+		method      string
+		url         string
+		body        string
+		contentType string
+		token       string
+	}
+	type want struct {
+		code        int
+		response    string
+		err         bool
+		contentType string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "test case #1",
+			fields: fields{
+				s:           s,
+				method:      http.MethodGet,
+				url:         "/user/urls",
+				body:        ``,
+				contentType: "application/json",
+				token:       "asdfg",
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				err:         true,
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewHandler(tt.fields.s)
+
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
+			request.Header.Set("Content-Type", tt.fields.contentType)
+			ctx := context.WithValue(context.Background(), middleware.Key, tt.fields.token)
+
+			w := httptest.NewRecorder()
+
+			h.GetUserURLs(w, request.WithContext(ctx))
+
+			assert.Equal(t, tt.want.code, w.Code)
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			if tt.want.response != "" {
+				assert.Equal(t, tt.want.response, w.Body.String())
+			}
+		})
+	}
+}
+
+func Test_handler_DeleteUserURLs(t *testing.T) {
+	m := memory.NewMemory(map[string]string{
+		"asdf": "yandex.ru",
+	})
+	s := shortener.NewShortener(m, "http://localhost:8080")
+
+	type fields struct {
+		s           shortener.ShortenerService
+		method      string
+		url         string
+		body        string
+		contentType string
+		token       string
+	}
+	type want struct {
+		code        int
+		response    string
+		err         bool
+		contentType string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "test case #1",
+			fields: fields{
+				s:           s,
+				method:      http.MethodDelete,
+				url:         "/api/user/urls",
+				body:        ``,
+				contentType: "application/json",
+				token:       "asdfg",
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				err:         true,
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewHandler(tt.fields.s)
+
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
+			request.Header.Set("Content-Type", tt.fields.contentType)
+			ctx := context.WithValue(context.Background(), middleware.Key, tt.fields.token)
+
+			w := httptest.NewRecorder()
+
+			h.DeleteUserURLs(w, request.WithContext(ctx))
+
+			assert.Equal(t, tt.want.code, w.Code)
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			if tt.want.response != "" {
+				assert.Equal(t, tt.want.response, w.Body.String())
+			}
+		})
+	}
+}
+
+func Test_handler_ShortenBatch(t *testing.T) {
+	m := memory.NewMemory(map[string]string{
+		"asdf": "yandex.ru",
+	})
+	s := shortener.NewShortener(m, "http://localhost:8080")
+
+	type fields struct {
+		s           shortener.ShortenerService
+		method      string
+		url         string
+		body        string
+		contentType string
+		token       string
+	}
+	type want struct {
+		code        int
+		response    string
+		err         bool
+		contentType string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "test case #1",
+			fields: fields{
+				s:           s,
+				method:      http.MethodPost,
+				url:         "/api/shorten/batch",
+				body:        ``,
+				contentType: "application/json",
+				token:       "asdfg",
+			},
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				err:         true,
+				contentType: "text/plain; charset=utf-8",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewHandler(tt.fields.s)
+
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
+			request.Header.Set("Content-Type", tt.fields.contentType)
+			ctx := context.WithValue(context.Background(), middleware.Key, tt.fields.token)
+
+			w := httptest.NewRecorder()
+
+			h.ShortenBatch(w, request.WithContext(ctx))
+
+			assert.Equal(t, tt.want.code, w.Code)
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			if tt.want.response != "" {
+				assert.Equal(t, tt.want.response, w.Body.String())
+			}
+		})
+	}
+}
+
+func Test_handler_Ping(t *testing.T) {
+	m := memory.NewMemory(map[string]string{
+		"asdf": "yandex.ru",
+	})
+	s := shortener.NewShortener(m, "http://localhost:8080")
+
+	type fields struct {
+		s           shortener.ShortenerService
+		method      string
+		url         string
+		body        string
+		contentType string
+		token       string
+	}
+	type want struct {
+		code        int
+		response    string
+		err         bool
+		contentType string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   want
+	}{
+		{
+			name: "test case #1",
+			fields: fields{
+				s:           s,
+				method:      http.MethodPost,
+				url:         "/ping",
+				body:        ``,
+				contentType: "application/json",
+				token:       "asdfg",
+			},
+			want: want{
+				code:        http.StatusOK,
+				response:    "",
+				err:         false,
+				contentType: "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewHandler(tt.fields.s)
+
+			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
+			request.Header.Set("Content-Type", tt.fields.contentType)
+			ctx := context.WithValue(context.Background(), middleware.Key, tt.fields.token)
+
+			w := httptest.NewRecorder()
+
+			h.Ping(w, request.WithContext(ctx))
 
 			assert.Equal(t, tt.want.code, w.Code)
 			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
