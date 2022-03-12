@@ -10,6 +10,7 @@ import (
 )
 
 var _ repositories.ShortenerRepository = &Memory{}
+var _ repositories.AuthRepository = &Memory{}
 
 // Memory is in-memory storage.
 type Memory struct {
@@ -74,5 +75,12 @@ func (m *Memory) AddURLToDelete(u repositories.URL) {
 
 // FlushToDelete implements repositories.ShortenerRepository FlushToDelete method.
 func (m *Memory) FlushToDelete() error {
+	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) CreateUser() (string, error) {
+	return "", storage.ErrorMethodIsNotImplemented
+}
+func (m *Memory) VerifyUser(string) error {
 	return storage.ErrorMethodIsNotImplemented
 }

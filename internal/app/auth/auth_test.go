@@ -3,83 +3,78 @@
 package auth
 
 import (
-	"crypto/cipher"
-	"reflect"
+	"log"
 	"testing"
 
-	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuth_Encrypt(t *testing.T) {
-	type fields struct {
-		r      repositories.AuthRepository
-		key    [32]byte
-		aesgcm cipher.AEAD
+	m := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	auth, err := NewAuth([]byte("x35k9f"), m)
+	if err != nil {
+		log.Fatal(err)
 	}
-	type args struct {
-		src string
-	}
+
 	tests := []struct {
 		name    string
-		fields  fields
-		args    args
+		auth    *Auth
+		src     string
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test case #1",
+			auth: auth,
+			src:  "asdf",
+			want: "ba75786072950c920d0202a7404cc47e317eb440",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := &Auth{
-				r:      tt.fields.r,
-				key:    tt.fields.key,
-				aesgcm: tt.fields.aesgcm,
-			}
-			got, err := a.Encrypt(tt.args.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Auth.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Auth.Encrypt() = %v, want %v", got, tt.want)
-			}
+
+			got, err := tt.auth.Encrypt(tt.src)
+			log.Println(got)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func TestAuth_Decrypt(t *testing.T) {
-	type fields struct {
-		r      repositories.AuthRepository
-		key    [32]byte
-		aesgcm cipher.AEAD
-	}
-	type args struct {
-		src string
+	m := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	auth, err := NewAuth([]byte("x35k9f"), m)
+	if err != nil {
+		log.Fatal(err)
 	}
 	tests := []struct {
 		name    string
-		fields  fields
-		args    args
-		want    []byte
+		auth    *Auth
+		src     string
+		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test case #1",
+			auth: auth,
+			src:  "ba75786072950c920d0202a7404cc47e317eb440",
+			want: "asdf",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := &Auth{
-				r:      tt.fields.r,
-				key:    tt.fields.key,
-				aesgcm: tt.fields.aesgcm,
-			}
-			got, err := a.Decrypt(tt.args.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Auth.Decrypt() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Auth.Decrypt() = %v, want %v", got, tt.want)
-			}
+			got, err := tt.auth.Decrypt(tt.src)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, string(got))
 		})
 	}
 }
