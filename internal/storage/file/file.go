@@ -16,6 +16,7 @@ import (
 
 // file implements file storage.
 type file struct {
+	path string
 	file *os.File
 	rw   *bufio.ReadWriter
 	m    *memory.Memory
@@ -26,7 +27,8 @@ var _ repositories.ShortenerRepository = &file{}
 func NewFile(path string) (*file, error) {
 	m := memory.NewMemory(map[string]string{})
 	s := &file{
-		m: m,
+		path: path,
+		m:    m,
 	}
 
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
@@ -96,7 +98,10 @@ func (f *file) GetUserURLs(user string, baseURL string) ([]repositories.URL, err
 
 // Ping implements repositories.ShortenerRepository Ping method.
 func (f *file) Ping() error {
-	return storage.ErrorMethodIsNotImplemented
+	if _, err := os.Stat(f.path); os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // AddURLBuffer implements repositories.ShortenerRepository AddURLBuffer method.

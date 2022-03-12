@@ -55,7 +55,7 @@ func (m *Memory) GetUserURLs(user string, baseURL string) ([]repositories.URL, e
 
 // Ping implements repositories.ShortenerRepository Ping method.
 func (m *Memory) Ping() error {
-	return storage.ErrorMethodIsNotImplemented
+	return nil
 }
 
 // AddURLBuffer implements repositories.ShortenerRepository AddURLBuffer method.

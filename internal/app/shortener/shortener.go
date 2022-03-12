@@ -158,7 +158,6 @@ func (s *shortener) DeleteURLs(user string, URLs []string) {
 			log.Printf("error deleting urls for user: %v", err)
 		}
 	}()
-
 }
 
 var _ ShortenerService = &shortener{}

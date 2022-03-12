@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -189,6 +190,7 @@ func (p *pg) Flush() error {
 
 // AddURLToDelete implements repositories.ShortenerRepository AddURLToDelete method.
 func (p *pg) AddURLToDelete(u repositories.URL) {
+	log.Println(u)
 	p.deleteBuffer <- u
 }
 
