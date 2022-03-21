@@ -1,3 +1,6 @@
+// Package middleware provides functionality for wrapper functions
+// for handlers, that perform required operations either before
+// calling handler or after.
 package middleware
 
 import (
@@ -13,7 +16,14 @@ type ContextKey string
 
 var Key ContextKey = "user"
 
+// AuthMiddleware is a middleware for authentication.
+// If user provides token in a cookie, named token, it
+// tries to authenticate him. If user can't be authenticated
+// new token is created for user, and passed in a cookie,
+// named token.
 type AuthMiddleware struct {
+	// auth is a service that performs operations on
+	// encryption, decryption and authentication.
 	auth auth.AuthService
 }
 
@@ -21,6 +31,7 @@ func NewAuthMiddleware(auth auth.AuthService) *AuthMiddleware {
 	return &AuthMiddleware{auth: auth}
 }
 
+// Middleware is a function that is used to wrap handler.
 func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("token")

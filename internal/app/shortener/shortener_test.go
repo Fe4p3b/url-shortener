@@ -2,9 +2,11 @@ package shortener
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
+	"github.com/Fe4p3b/url-shortener/internal/storage"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/stretchr/testify/assert"
 )
@@ -118,6 +120,122 @@ func Test_shortener_Store(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func Test_shortener_Ping(t *testing.T) {
+	s := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	tests := []struct {
+		name    string
+		r       repositories.ShortenerRepository
+		wantErr bool
+	}{
+		{
+			name:    "Test case #1",
+			r:       s,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &shortener{
+				r: tt.r,
+			}
+			err := s.Ping()
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_shortener_GetUserURLs(t *testing.T) {
+	s := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	tests := []struct {
+		name    string
+		r       repositories.ShortenerRepository
+		wantErr bool
+	}{
+		{
+			name:    "Test case #1",
+			r:       s,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &shortener{
+				r: tt.r,
+			}
+			_, err := s.GetUserURLs("user")
+			assert.Error(t, storage.ErrorMethodIsNotImplemented, err)
+		})
+	}
+}
+
+func Test_shortener_StoreBatch(t *testing.T) {
+	s := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	tests := []struct {
+		name    string
+		r       repositories.ShortenerRepository
+		args    []repositories.URL
+		wantErr bool
+	}{
+		{
+			name:    "Test case #1",
+			r:       s,
+			args:    make([]repositories.URL, 0),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &shortener{
+				r: tt.r,
+			}
+			_, err := s.StoreBatch("user", tt.args)
+			assert.Error(t, storage.ErrorMethodIsNotImplemented, err)
+		})
+	}
+}
+
+func Test_shortener_DeleteURLs(t *testing.T) {
+	s := memory.NewMemory(
+		map[string]string{
+			"asdf": "yandex.ru",
+		},
+	)
+	tests := []struct {
+		name    string
+		r       repositories.ShortenerRepository
+		args    []string
+		wantErr bool
+	}{
+		{
+			name:    "Test case #1",
+			r:       s,
+			args:    make([]string, 0),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &shortener{
+				r: tt.r,
+			}
+			s.DeleteURLs("user", tt.args)
+			time.Sleep(1 * time.Second)
 		})
 	}
 }

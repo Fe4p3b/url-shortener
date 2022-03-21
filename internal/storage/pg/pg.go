@@ -1,3 +1,5 @@
+// Package pg implements postgres storage for
+// shortener service.
 package pg
 
 import (
@@ -15,9 +17,16 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
+// pg contains database conneciton, buffer for bulk
+// addition and buffer to delete URLs.
 type pg struct {
-	db           *sql.DB
-	buffer       []repositories.URL
+	// db is a database connection
+	db *sql.DB
+
+	// buffer for bulk addition
+	buffer []repositories.URL
+
+	// deleteBuffer for URLs deletion
 	deleteBuffer chan repositories.URL
 }
 
@@ -33,6 +42,8 @@ func NewConnection(dsn string) (*pg, error) {
 	return &pg{db: conn, buffer: make([]repositories.URL, 0, 1000), deleteBuffer: make(chan repositories.URL, 1)}, nil
 }
 
+// CreateShortenerTable creates required fields
+// in database.
 func (p *pg) CreateShortenerTable() error {
 	sql, err := os.ReadFile("./migrations/001_migration.sql")
 	if err != nil {
@@ -50,6 +61,7 @@ func (p *pg) CreateShortenerTable() error {
 	return nil
 }
 
+// Ping implements repositories.ShortenerRepository Ping method.
 func (p *pg) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -59,6 +71,7 @@ func (p *pg) Ping() error {
 	return nil
 }
 
+// Find implements repositories.ShortenerRepository Find method.
 func (p *pg) Find(sURL string) (*repositories.URL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -76,6 +89,7 @@ func (p *pg) Find(sURL string) (*repositories.URL, error) {
 	return URL, nil
 }
 
+// Save implements repositories.ShortenerRepository Save method.
 func (p *pg) Save(url *models.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -99,6 +113,7 @@ func (p *pg) Save(url *models.URL) error {
 	return err
 }
 
+// GetUserURLs implements repositories.ShortenerRepository GetUserURLs method.
 func (p *pg) GetUserURLs(user string, baseURL string) (URLs []repositories.URL, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -126,6 +141,7 @@ func (p *pg) GetUserURLs(user string, baseURL string) (URLs []repositories.URL, 
 	return
 }
 
+// AddURLBuffer implements repositories.ShortenerRepository AddURLBuffer method.
 func (p *pg) AddURLBuffer(u repositories.URL) error {
 	p.buffer = append(p.buffer, u)
 
@@ -138,6 +154,7 @@ func (p *pg) AddURLBuffer(u repositories.URL) error {
 	return nil
 }
 
+// Flush implements repositories.ShortenerRepository Flush method.
 func (p *pg) Flush() error {
 	if len(p.buffer) == 0 {
 		return nil
@@ -170,10 +187,12 @@ func (p *pg) Flush() error {
 	return nil
 }
 
+// AddURLToDelete implements repositories.ShortenerRepository AddURLToDelete method.
 func (p *pg) AddURLToDelete(u repositories.URL) {
 	p.deleteBuffer <- u
 }
 
+// FlushToDelete implements repositories.ShortenerRepository FlushToDelete method.
 func (p *pg) FlushToDelete() error {
 	if len(p.deleteBuffer) == 0 {
 		return nil
@@ -207,10 +226,12 @@ func (p *pg) FlushToDelete() error {
 	}
 }
 
+// Close closes database connection.
 func (p *pg) Close() error {
 	return p.db.Close()
 }
 
+// CreateUser implements repositories.AuthRepository CreateUser method.
 func (p *pg) CreateUser() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -228,6 +249,7 @@ func (p *pg) CreateUser() (string, error) {
 	return uuid, nil
 }
 
+// VerifyUser implements repositories.AuthRepository VerifyUser method.
 func (p *pg) VerifyUser(user string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

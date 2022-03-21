@@ -1,3 +1,4 @@
+// Package handlers provides handlers for http endpoints.
 package handlers
 
 import (
@@ -5,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"net/http/pprof"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
@@ -16,6 +19,7 @@ import (
 	"github.com/jackc/pgerrcode"
 )
 
+// handler provides handlers for http endpoints.
 type handler struct {
 	s      shortener.ShortenerService
 	Router *chi.Mux
@@ -28,7 +32,8 @@ func NewHandler(s shortener.ShortenerService) *handler {
 	}
 }
 
-func (h *handler) SetupRouting() {
+// SetupAPIRouting initializes http routes for api.
+func (h *handler) SetupAPIRouting() {
 	h.Router.Get("/{url}", h.GetURL)
 	h.Router.Post("/", h.PostURL)
 	h.Router.Post("/api/shorten", h.JSONPost)
@@ -40,6 +45,23 @@ func (h *handler) SetupRouting() {
 	h.Router.Delete("/api/user/urls", h.DeleteUserURLs)
 }
 
+// SetupProfiling initializes http routes for profiling.
+func (h *handler) SetupProfiling() {
+	h.Router.HandleFunc("/debug/pprof/", pprof.Index)
+	h.Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	h.Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	h.Router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	h.Router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	h.Router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	h.Router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	h.Router.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	h.Router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	h.Router.Handle("/debug/pprof/block", pprof.Handler("block"))
+	h.Router.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+}
+
+// GetURL redirects to original URL by short URL.
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	q := chi.URLParam(r, "url")
 
@@ -62,6 +84,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url.URL, http.StatusTemporaryRedirect)
 }
 
+// PostURL creates short URL by original URL.
 func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
@@ -105,6 +128,7 @@ func (h *handler) PostURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// JSONPost creates short URL by original URL in json.
 func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
@@ -167,6 +191,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetUserURLs shows user URLs, that he created, in json.
 func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
@@ -206,6 +231,7 @@ func (h *handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteUserURLs deletes user URLs by short URL.
 func (h *handler) DeleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
@@ -236,6 +262,7 @@ func (h *handler) DeleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// ShortenBatch creates short URLs for batch of original URLs in json.
 func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(middleware.Key).(string)
 	if !ok {
@@ -282,6 +309,7 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Ping checks whether database connetion is up.
 func (h *handler) Ping(w http.ResponseWriter, r *http.Request) {
 	if err := h.s.Ping(); err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

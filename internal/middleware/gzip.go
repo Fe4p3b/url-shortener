@@ -16,6 +16,9 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// GZIPWriterMiddleware performs encoding of data if client allows gzip
+// encoding. It creates gzipWriter that is used to encode http response
+// of handler.
 func GZIPWriterMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -36,6 +39,8 @@ func GZIPWriterMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// GZIPReaderMiddleware reads and decodes encoded in gzip
+// algorithm content. Decoded content is passed to handler.
 func GZIPReaderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Encoding") == "gzip" {

@@ -90,12 +90,16 @@ func main() {
 
 	s := shortener.NewShortener(pg, cfg.BaseURL)
 
-	auth := auth.NewAuth([]byte(cfg.Secret), pg)
+	auth, err := auth.NewAuth([]byte(cfg.Secret), pg)
+	if err != nil {
+		log.Fatal(err)
+	}
 	authMiddleware := middleware.NewAuthMiddleware(auth)
 
 	h := handlers.NewHandler(s)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
-	h.SetupRouting()
+	h.SetupAPIRouting()
+	h.SetupProfiling()
 
 	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)
