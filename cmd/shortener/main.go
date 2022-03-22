@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	buildVersion string
-	buildDate    string
-	buildCommit  string
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 type Config struct {
@@ -74,7 +74,7 @@ func setConfig(cfg *Config) error {
 }
 
 func main() {
-	info()
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
 
 	cfg := &Config{}
 	if err := setConfig(cfg); err != nil {
@@ -93,7 +93,7 @@ func main() {
 	}
 	defer pg.Close()
 
-	if err := pg.CreateShortenerTable(); err != nil {
+	if err = pg.CreateShortenerTable(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -113,17 +113,4 @@ func main() {
 	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
-}
-
-func info() {
-	if buildVersion == "" {
-		buildVersion = "N/A"
-	}
-	if buildDate == "" {
-		buildDate = "N/A"
-	}
-	if buildCommit == "" {
-		buildCommit = "N/A"
-	}
-	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
 }

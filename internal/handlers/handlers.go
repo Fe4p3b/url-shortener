@@ -149,7 +149,7 @@ func (h *handler) JSONPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := &models.URL{}
-	if err := s.Decode(b, url); err != nil {
+	if err = s.Decode(b, url); err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -283,7 +283,7 @@ func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	batch := &[]repositories.URL{}
-	if err := s.Decode(b, batch); err != nil {
+	if err = s.Decode(b, batch); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
