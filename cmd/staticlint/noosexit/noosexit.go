@@ -37,8 +37,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		ast.Inspect(file, func(node ast.Node) bool {
 			switch x := node.(type) {
-			case *ast.ExprStmt:
-				nodeWithExit(x, pass)
+			case *ast.FuncDecl:
+				if x.Name.String() == "main" {
+					filterBlockStmt(pass, x.Body)
+				}
 			}
 
 			return true
@@ -47,20 +49,32 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
+// filterBlockStmt traverses ast.BlockStmt for if statement
+// or expresstion.
+func filterBlockStmt(pass *analysis.Pass, body *ast.BlockStmt) {
+	for _, node := range body.List {
+		switch x := node.(type) {
+		case *ast.ExprStmt:
+			nodeWithExit(pass, x)
+		case *ast.IfStmt:
+			filterBlockStmt(pass, x.Body)
+		}
+	}
+}
+
 // nodeWithExit finds os.Exit call in node and
 // reports about it.
-func nodeWithExit(node ast.Stmt, pass *analysis.Pass) {
-	if node, ok := node.(*ast.ExprStmt); ok {
-		if call, ok := node.X.(*ast.CallExpr); ok {
-			if fun, ok := call.Fun.(*ast.SelectorExpr); ok {
-				if pkg, ok := fun.X.(*ast.Ident); ok {
-					funcName := fun.Sel.Name
-					if pkg.String() == "os" && funcName == "Exit" {
-						pass.Reportf(fun.X.Pos(), "os.Exit in main")
-					}
+func nodeWithExit(pass *analysis.Pass, node *ast.ExprStmt) {
+	switch x := node.X.(type) {
+	case *ast.CallExpr:
+		if fun, ok := x.Fun.(*ast.SelectorExpr); ok {
+			if pkg, ok := fun.X.(*ast.Ident); ok {
+				funcName := fun.Sel.Name
+				if pkg.String() == "os" && funcName == "Exit" {
+					pass.Reportf(fun.X.Pos(), "os.Exit in main")
 				}
-
 			}
+
 		}
 	}
 }
