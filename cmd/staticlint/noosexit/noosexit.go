@@ -36,10 +36,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		ast.Inspect(file, func(node ast.Node) bool {
-			if x, ok := node.(*ast.FuncDecl); ok {
-				if x.Name.String() == "main" {
-					report(pass, x)
-				}
+			switch x := node.(type) {
+			case *ast.ExprStmt:
+				nodeWithExit(x, pass)
 			}
 
 			return true
@@ -48,21 +47,19 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-// report finds os.Exit call in *ast.FuncDecl and
+// nodeWithExit finds os.Exit call in node and
 // reports about it.
-func report(pass *analysis.Pass, decl *ast.FuncDecl) {
-	for _, node := range decl.Body.List {
-		if node, ok := node.(*ast.ExprStmt); ok {
-			if call, ok := node.X.(*ast.CallExpr); ok {
-				if fun, ok := call.Fun.(*ast.SelectorExpr); ok {
-					if pkg, ok := fun.X.(*ast.Ident); ok {
-						funcName := fun.Sel.Name
-						if pkg.String() == "os" && funcName == "Exit" {
-							pass.Reportf(fun.X.Pos(), "os.Exit in main")
-						}
+func nodeWithExit(node ast.Stmt, pass *analysis.Pass) {
+	if node, ok := node.(*ast.ExprStmt); ok {
+		if call, ok := node.X.(*ast.CallExpr); ok {
+			if fun, ok := call.Fun.(*ast.SelectorExpr); ok {
+				if pkg, ok := fun.X.(*ast.Ident); ok {
+					funcName := fun.Sel.Name
+					if pkg.String() == "os" && funcName == "Exit" {
+						pass.Reportf(fun.X.Pos(), "os.Exit in main")
 					}
-
 				}
+
 			}
 		}
 	}
