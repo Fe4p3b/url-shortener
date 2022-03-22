@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,6 +13,12 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 type Config struct {
@@ -67,6 +74,8 @@ func setConfig(cfg *Config) error {
 }
 
 func main() {
+	info()
+
 	cfg := &Config{}
 	if err := setConfig(cfg); err != nil {
 		log.Fatal(err)
@@ -104,4 +113,17 @@ func main() {
 	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func info() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
 }
