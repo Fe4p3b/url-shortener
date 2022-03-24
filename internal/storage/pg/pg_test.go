@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"testing"
+	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/Fe4p3b/url-shortener/internal/models"
@@ -373,6 +374,59 @@ func Test_pg_AddURLBuffer(t *testing.T) {
 	}
 }
 
+func Test_pg_Flush(t *testing.T) {
+	db, mock := NewMock()
+	defer db.Close()
+
+	type fields struct {
+		db           *sql.DB
+		buffer       []repositories.URL
+		deleteBuffer chan repositories.URL
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		query   string
+		wantErr bool
+	}{
+		{
+			name: "Test case #1",
+			fields: fields{
+				db: db,
+				buffer: []repositories.URL{
+					{
+						CorrelationID: "1",
+						URL:           "http://google.com",
+						ShortURL:      "asdf",
+						UserID:        "1",
+					},
+				},
+			},
+			query:   "INSERT INTO shortener.shortener(correlation_id, short_url, original_url, user_id) VALUES($1, $2, $3, $4)",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &pg{
+				db:     tt.fields.db,
+				buffer: tt.fields.buffer,
+			}
+			mock.ExpectBegin()
+			prep := mock.ExpectPrepare(regexp.QuoteMeta(tt.query))
+			for _, arg := range p.buffer {
+
+				prep.ExpectExec().WithArgs(arg.CorrelationID, arg.ShortURL, arg.URL, arg.UserID).WillReturnResult(sqlmock.NewResult(0, 1))
+			}
+			mock.ExpectCommit()
+
+			err := p.Flush()
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func Test_pg_GetUserURLs(t *testing.T) {
 	db, mock := NewMock()
 	defer db.Close()
@@ -429,6 +483,65 @@ func Test_pg_GetUserURLs(t *testing.T) {
 			gotURLs, err := p.GetUserURLs(tt.args.user, tt.args.baseURL)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantURLs, gotURLs)
+		})
+	}
+}
+
+func Test_pg_FlushToDelete(t *testing.T) {
+	db, mock := NewMock()
+	defer db.Close()
+
+	type fields struct {
+		db           *sql.DB
+		deleteBuffer chan repositories.URL
+	}
+	type args struct {
+		URL   repositories.URL
+		query string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		query   string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test case #1",
+			fields: fields{
+				db:           db,
+				deleteBuffer: make(chan repositories.URL, 1),
+			},
+			args: args{
+				URL: repositories.URL{
+					CorrelationID: "1",
+					URL:           "http://google.com",
+					ShortURL:      "asdf",
+					UserID:        "1",
+				},
+				query: "UPDATE shortener.shortener SET is_deleted=true WHERE short_url=$1 and user_id=$2",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &pg{
+				db:           tt.fields.db,
+				deleteBuffer: tt.fields.deleteBuffer,
+			}
+
+			go func() {
+				p.deleteBuffer <- tt.args.URL
+			}()
+
+			time.Sleep(1 * time.Second)
+			mock.ExpectBegin()
+			prep := mock.ExpectPrepare(regexp.QuoteMeta(tt.query))
+			prep.ExpectExec().WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectCommit()
+
+			err := p.FlushToDelete()
+			assert.NoError(t, err)
 		})
 	}
 }

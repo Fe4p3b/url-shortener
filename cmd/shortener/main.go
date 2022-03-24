@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,6 +13,12 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
+)
+
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 type Config struct {
@@ -67,6 +74,8 @@ func setConfig(cfg *Config) error {
 }
 
 func main() {
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
+
 	cfg := &Config{}
 	if err := setConfig(cfg); err != nil {
 		log.Fatal(err)
@@ -84,7 +93,7 @@ func main() {
 	}
 	defer pg.Close()
 
-	if err := pg.CreateShortenerTable(); err != nil {
+	if err = pg.CreateShortenerTable(); err != nil {
 		log.Fatal(err)
 	}
 

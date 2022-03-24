@@ -105,7 +105,7 @@ func (p *pg) Save(url *models.URL) error {
 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		sql := `SELECT short_url FROM shortener.shortener WHERE original_url=$1`
 		row := p.db.QueryRowContext(ctx, sql, url.URL)
-		if err := row.Scan(&url.ShortURL); err != nil {
+		if err = row.Scan(&url.ShortURL); err != nil {
 			return err
 		}
 	}
@@ -172,7 +172,7 @@ func (p *pg) Flush() error {
 
 	for _, v := range p.buffer {
 		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, v.UserID); err != nil {
-			if err := tx.Rollback(); err != nil {
+			if err = tx.Rollback(); err != nil {
 				return err
 			}
 			return err
@@ -212,7 +212,7 @@ func (p *pg) FlushToDelete() error {
 		select {
 		case v := <-p.deleteBuffer:
 			if _, err := stmt.Exec(v.ShortURL, v.UserID); err != nil {
-				if err := tx.Rollback(); err != nil {
+				if err = tx.Rollback(); err != nil {
 					return err
 				}
 				return err
