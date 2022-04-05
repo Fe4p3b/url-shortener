@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -32,14 +33,68 @@ var (
 )
 
 type Config struct {
-	Address         string `env:"SERVER_ADDRESS,required" envDefault:"0.0.0.0:8080"`
-	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage"`
-	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable"`
-	Secret          string `env:"SECRET,required" envDefault:"x35k9f"`
-	EnableHTTPS     bool   `env:"ENABLE_HTTPS,required" envDefault:"false"`
-	Certfile        string `env:"CERTFILE" envDefault:"cert"`
-	CertKey         string `env:"PRIVATE_KEY" envDefault:"key"`
+	Address         string `env:"SERVER_ADDRESS,required" envDefault:"0.0.0.0:8080" json:"server_address"`
+	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080" json:"base_url"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage" json:"file_storage_path"`
+	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable" json:"database_dsn"`
+	Secret          string `env:"SECRET,required" envDefault:"x35k9f" json:"secret"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS,required" envDefault:"false" json:"enable_https"`
+	Certfile        string `env:"CERTFILE" envDefault:"cert" json:"certfile_path"`
+	CertKey         string `env:"PRIVATE_KEY" envDefault:"key" json:"certkey_path"`
+	ConfigFile      string `env:"CONFIG" envDefault:"config/config.json"`
+}
+
+func main() {
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
+
+	cfg := &Config{}
+	if err := setConfig(cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := file.NewFile(cfg.FileStoragePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	pg, err := pg.NewConnection(cfg.DatabaseDSN)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pg.Close()
+
+	if err = pg.CreateShortenerTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	s := shortener.NewShortener(pg, cfg.BaseURL)
+
+	auth, err := auth.NewAuth([]byte(cfg.Secret), pg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	authMiddleware := middleware.NewAuthMiddleware(auth)
+
+	h := handlers.NewHandler(s)
+	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
+	h.SetupAPIRouting()
+	h.SetupProfiling()
+
+	if cfg.EnableHTTPS {
+		if err := createCert(); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := http.ListenAndServeTLS(cfg.Address, cfg.Certfile, cfg.CertKey, h.Router); err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
 
 func setConfig(cfg *Config) error {
@@ -89,61 +144,25 @@ func setConfig(cfg *Config) error {
 		cfg.EnableHTTPS = enableHTTPS
 	}
 
+	if err := readJsonConfig(cfg); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func main() {
-	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", buildVersion, buildDate, buildCommit)
-
-	cfg := &Config{}
-	if err := setConfig(cfg); err != nil {
-		log.Fatal(err)
-	}
-
-	f, err := file.NewFile(cfg.FileStoragePath)
+func readJsonConfig(cfg *Config) error {
+	configFile, err := os.Open(cfg.ConfigFile)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	pg, err := pg.NewConnection(cfg.DatabaseDSN)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer pg.Close()
-
-	if err = pg.CreateShortenerTable(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	s := shortener.NewShortener(pg, cfg.BaseURL)
-
-	auth, err := auth.NewAuth([]byte(cfg.Secret), pg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	authMiddleware := middleware.NewAuthMiddleware(auth)
-
-	h := handlers.NewHandler(s)
-	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
-	h.SetupAPIRouting()
-	h.SetupProfiling()
-
-	fmt.Println(cfg)
-	if cfg.EnableHTTPS {
-		if err := createCert(); err != nil {
-			log.Fatal(err)
-		}
-
-		if err := http.ListenAndServeTLS(cfg.Address, cfg.Certfile, cfg.CertKey, h.Router); err != http.ErrServerClosed {
-			log.Fatal(err)
-		}
-		return
+	jsonParser := json.NewDecoder(configFile)
+	if err = jsonParser.Decode(cfg); err != nil {
+		return err
 	}
 
-	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
+	return nil
 }
 
 func createCert() error {
