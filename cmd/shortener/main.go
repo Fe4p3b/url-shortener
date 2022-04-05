@@ -110,14 +110,16 @@ func setConfig(cfg *Config) error {
 		databaseDSN     string
 		secret          string
 		enableHTTPS     bool
+		configFile      string
 	)
 
 	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
 	flag.StringVar(&baseURL, "b", "", "Базовый адрес результирующего сокращённого URL")
 	flag.StringVar(&fileStoragePath, "f", "", "Путь до файла с сокращёнными URL")
 	flag.StringVar(&databaseDSN, "d", "", "Строка с адресом подключения к БД")
-	flag.StringVar(&secret, "c", "", "Код для шифровки и дешифровки")
+	flag.StringVar(&secret, "k", "", "Код для шифровки и дешифровки")
 	flag.BoolVar(&enableHTTPS, "s", false, "Активация HTTPS")
+	flag.StringVar(&configFile, "c", "", "Конфигурационный файл")
 	flag.Parse()
 
 	if address != "" {
@@ -140,18 +142,22 @@ func setConfig(cfg *Config) error {
 		cfg.Secret = secret
 	}
 
-	if enableHTTPS != false {
+	if !enableHTTPS {
 		cfg.EnableHTTPS = enableHTTPS
 	}
 
-	if err := readJsonConfig(cfg); err != nil {
+	if configFile != "" {
+		cfg.ConfigFile = configFile
+	}
+
+	if err := readJSONConfig(cfg); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func readJsonConfig(cfg *Config) error {
+func readJSONConfig(cfg *Config) error {
 	configFile, err := os.Open(cfg.ConfigFile)
 	if err != nil {
 		return err
