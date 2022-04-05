@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -15,6 +16,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/auth"
@@ -81,18 +84,33 @@ func main() {
 	h.SetupAPIRouting()
 	h.SetupProfiling()
 
-	if cfg.EnableHTTPS {
-		if err := createCert(); err != nil {
-			log.Fatal(err)
+	srv := &http.Server{Addr: cfg.Address, Handler: h.Router}
+	go func() {
+		if cfg.EnableHTTPS {
+			if err := createCert(); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := srv.ListenAndServeTLS(cfg.Certfile, cfg.CertKey); err != http.ErrServerClosed {
+				log.Fatal(err)
+			}
+			return
 		}
 
-		if err := http.ListenAndServeTLS(cfg.Address, cfg.Certfile, cfg.CertKey, h.Router); err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
-		return
-	}
+	}()
 
-	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-sig
+	log.Println("Shutting down server gracefully")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -142,7 +160,7 @@ func setConfig(cfg *Config) error {
 		cfg.Secret = secret
 	}
 
-	if !enableHTTPS {
+	if enableHTTPS {
 		cfg.EnableHTTPS = enableHTTPS
 	}
 
@@ -158,16 +176,17 @@ func setConfig(cfg *Config) error {
 }
 
 func readJSONConfig(cfg *Config) error {
-	configFile, err := os.Open(cfg.ConfigFile)
-	if err != nil {
-		return err
-	}
+	if cfg.ConfigFile != "" {
+		configFile, err := os.Open(cfg.ConfigFile)
+		if err != nil {
+			return err
+		}
 
-	jsonParser := json.NewDecoder(configFile)
-	if err = jsonParser.Decode(cfg); err != nil {
-		return err
+		jsonParser := json.NewDecoder(configFile)
+		if err = jsonParser.Decode(cfg); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
