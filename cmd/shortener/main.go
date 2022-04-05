@@ -1,10 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"log"
+	"math/big"
+	"net"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/auth"
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
@@ -27,6 +37,9 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage"`
 	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable"`
 	Secret          string `env:"SECRET,required" envDefault:"x35k9f"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS,required" envDefault:"false"`
+	Certfile        string `env:"CERTFILE" envDefault:"cert"`
+	CertKey         string `env:"PRIVATE_KEY" envDefault:"key"`
 }
 
 func setConfig(cfg *Config) error {
@@ -41,13 +54,15 @@ func setConfig(cfg *Config) error {
 		fileStoragePath string
 		databaseDSN     string
 		secret          string
+		enableHTTPS     bool
 	)
 
 	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
 	flag.StringVar(&baseURL, "b", "", "Базовый адрес результирующего сокращённого URL")
 	flag.StringVar(&fileStoragePath, "f", "", "Путь до файла с сокращёнными URL")
 	flag.StringVar(&databaseDSN, "d", "", "Строка с адресом подключения к БД")
-	flag.StringVar(&secret, "s", "", "Код для шифровки и дешифровки")
+	flag.StringVar(&secret, "c", "", "Код для шифровки и дешифровки")
+	flag.BoolVar(&enableHTTPS, "s", false, "Активация HTTPS")
 	flag.Parse()
 
 	if address != "" {
@@ -68,6 +83,10 @@ func setConfig(cfg *Config) error {
 
 	if secret != "" {
 		cfg.Secret = secret
+	}
+
+	if enableHTTPS != false {
+		cfg.EnableHTTPS = enableHTTPS
 	}
 
 	return nil
@@ -110,7 +129,79 @@ func main() {
 	h.SetupAPIRouting()
 	h.SetupProfiling()
 
+	fmt.Println(cfg)
+	if cfg.EnableHTTPS {
+		if err := createCert(); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := http.ListenAndServeTLS(cfg.Address, cfg.Certfile, cfg.CertKey, h.Router); err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func createCert() error {
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject: pkix.Name{
+			Organization: []string{"Yandex.Praktikum"},
+			Country:      []string{"KZ"},
+		},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return err
+	}
+
+	var certPEM bytes.Buffer
+	pem.Encode(&certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	f, err := os.OpenFile("cert", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = certPEM.WriteTo(f)
+	if err != nil {
+		return err
+	}
+
+	var privateKeyPEM bytes.Buffer
+	pem.Encode(&privateKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+
+	f, err = os.OpenFile("key", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = privateKeyPEM.WriteTo(f)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
