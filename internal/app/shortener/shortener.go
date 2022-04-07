@@ -48,6 +48,8 @@ type ShortenerService interface {
 
 	// Ping tests connection for the storage, or returns error.
 	Ping() error
+
+	GetStats() (*models.Stats, error)
 }
 
 type shortener struct {
@@ -158,6 +160,10 @@ func (s *shortener) DeleteURLs(user string, URLs []string) {
 			log.Printf("error deleting urls for user: %v", err)
 		}
 	}()
+}
+
+func (s *shortener) GetStats() (*models.Stats, error) {
+	return s.r.GetStats()
 }
 
 var _ ShortenerService = &shortener{}

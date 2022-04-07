@@ -265,3 +265,24 @@ func (p *pg) VerifyUser(user string) error {
 
 	return nil
 }
+
+func (p *pg) GetStats() (*models.Stats, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stats := &models.Stats{}
+
+	sql := `SELECT COUNT(short_url) FROM shortener.shortener`
+	row := p.db.QueryRowContext(ctx, sql)
+	if err := row.Scan(&stats.URLs); err != nil {
+		return nil, err
+	}
+
+	sql = `SELECT COUNT(*) FROM shortener.users`
+	row = p.db.QueryRowContext(ctx, sql)
+	if err := row.Scan(&stats.Users); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}

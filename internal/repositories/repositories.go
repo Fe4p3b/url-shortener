@@ -35,6 +35,8 @@ type ShortenerRepository interface {
 
 	// Ping tests connection with storage or returns error.
 	Ping() error
+
+	GetStats() (*models.Stats, error)
 }
 
 // AuthRepository provides functionality to create user identificator

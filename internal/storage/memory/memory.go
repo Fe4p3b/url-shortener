@@ -81,6 +81,11 @@ func (m *Memory) FlushToDelete() error {
 func (m *Memory) CreateUser() (string, error) {
 	return "", storage.ErrorMethodIsNotImplemented
 }
+
 func (m *Memory) VerifyUser(string) error {
 	return storage.ErrorMethodIsNotImplemented
+}
+
+func (m *Memory) GetStats() (*models.Stats, error) {
+	return nil, storage.ErrorMethodIsNotImplemented
 }

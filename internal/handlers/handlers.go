@@ -43,6 +43,8 @@ func (h *handler) SetupAPIRouting() {
 
 	h.Router.Get("/user/urls", h.GetUserURLs)
 	h.Router.Delete("/api/user/urls", h.DeleteUserURLs)
+
+	h.Router.Get("/api/internal/stats", h.GetStats)
 }
 
 // SetupProfiling initializes http routes for profiling.
@@ -317,4 +319,31 @@ func (h *handler) Ping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) GetStats(w http.ResponseWriter, r *http.Request) {
+	s, err := serializers.GetSerializer("json")
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	stats, err := h.s.GetStats()
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	b, err := s.Encode(stats)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(b)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
