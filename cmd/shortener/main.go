@@ -27,6 +27,7 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -85,32 +86,40 @@ func main() {
 	h.SetupProfiling()
 
 	srv := &http.Server{Addr: cfg.Address, Handler: h.Router}
-	go func() {
+
+	errgroup, ctx := errgroup.WithContext(context.Background())
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
+	errgroup.Go(func() error {
 		if cfg.EnableHTTPS {
 			if err := createCert(); err != nil {
-				log.Fatal(err)
+				return err
 			}
 
 			if err := srv.ListenAndServeTLS(cfg.Certfile, cfg.CertKey); err != http.ErrServerClosed {
-				log.Fatal(err)
+				return err
 			}
-			return
+
+			return nil
 		}
 
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
+			return err
 		}
-	}()
+		return nil
+	})
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	<-sig
-	log.Println("Shutting down server gracefully")
+	errgroup.Go(func() error {
+		<-ctx.Done()
+		log.Println("Shutting down server gracefully")
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+		return srv.Shutdown(ctx)
+	})
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := errgroup.Wait(); err != nil {
 		log.Fatal(err)
 	}
 }
