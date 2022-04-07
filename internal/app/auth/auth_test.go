@@ -39,7 +39,6 @@ func TestAuth_Encrypt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			got, err := tt.auth.Encrypt(tt.src)
-			log.Println(got)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})

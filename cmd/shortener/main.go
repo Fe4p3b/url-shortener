@@ -1,10 +1,24 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/json"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"log"
+	"math/big"
+	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/auth"
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
@@ -13,6 +27,7 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -22,55 +37,15 @@ var (
 )
 
 type Config struct {
-	Address         string `env:"SERVER_ADDRESS,required" envDefault:"0.0.0.0:8080"`
-	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage"`
-	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable"`
-	Secret          string `env:"SECRET,required" envDefault:"x35k9f"`
-}
-
-func setConfig(cfg *Config) error {
-	err := env.Parse(cfg)
-	if err != nil {
-		return err
-	}
-
-	var (
-		address         string
-		baseURL         string
-		fileStoragePath string
-		databaseDSN     string
-		secret          string
-	)
-
-	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
-	flag.StringVar(&baseURL, "b", "", "Базовый адрес результирующего сокращённого URL")
-	flag.StringVar(&fileStoragePath, "f", "", "Путь до файла с сокращёнными URL")
-	flag.StringVar(&databaseDSN, "d", "", "Строка с адресом подключения к БД")
-	flag.StringVar(&secret, "s", "", "Код для шифровки и дешифровки")
-	flag.Parse()
-
-	if address != "" {
-		cfg.Address = address
-	}
-
-	if baseURL != "" {
-		cfg.BaseURL = baseURL
-	}
-
-	if fileStoragePath != "" {
-		cfg.FileStoragePath = fileStoragePath
-	}
-
-	if databaseDSN != "" {
-		cfg.DatabaseDSN = databaseDSN
-	}
-
-	if secret != "" {
-		cfg.Secret = secret
-	}
-
-	return nil
+	Address         string `env:"SERVER_ADDRESS,required" envDefault:"0.0.0.0:8080" json:"server_address"`
+	BaseURL         string `env:"BASE_URL,required" envDefault:"http://localhost:8080" json:"base_url"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH,required" envDefault:"/tmp/url_shortener_storage" json:"file_storage_path"`
+	DatabaseDSN     string `env:"DATABASE_DSN,required" envDefault:"postgres://postgres:12345@localhost:5432/shortener?sslmode=disable" json:"database_dsn"`
+	Secret          string `env:"SECRET,required" envDefault:"x35k9f" json:"secret"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS,required" envDefault:"false" json:"enable_https"`
+	Certfile        string `env:"CERTFILE" envDefault:"cert" json:"certfile_path"`
+	CertKey         string `env:"PRIVATE_KEY" envDefault:"key" json:"certkey_path"`
+	ConfigFile      string `env:"CONFIG" envDefault:"config/config.json"`
 }
 
 func main() {
@@ -110,7 +85,176 @@ func main() {
 	h.SetupAPIRouting()
 	h.SetupProfiling()
 
-	if err := http.ListenAndServe(cfg.Address, h.Router); err != http.ErrServerClosed {
+	srv := &http.Server{Addr: cfg.Address, Handler: h.Router}
+
+	errgroup, ctx := errgroup.WithContext(context.Background())
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
+	errgroup.Go(func() error {
+		if cfg.EnableHTTPS {
+			if err := createCert(); err != nil {
+				return err
+			}
+
+			if err := srv.ListenAndServeTLS(cfg.Certfile, cfg.CertKey); err != http.ErrServerClosed {
+				return err
+			}
+
+			return nil
+		}
+
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			return err
+		}
+		return nil
+	})
+
+	errgroup.Go(func() error {
+		<-ctx.Done()
+		log.Println("Shutting down server gracefully")
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		return srv.Shutdown(ctx)
+	})
+
+	if err := errgroup.Wait(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func setConfig(cfg *Config) error {
+	err := env.Parse(cfg)
+	if err != nil {
+		return err
+	}
+
+	var (
+		address         string
+		baseURL         string
+		fileStoragePath string
+		databaseDSN     string
+		secret          string
+		enableHTTPS     bool
+		configFile      string
+	)
+
+	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
+	flag.StringVar(&baseURL, "b", "", "Базовый адрес результирующего сокращённого URL")
+	flag.StringVar(&fileStoragePath, "f", "", "Путь до файла с сокращёнными URL")
+	flag.StringVar(&databaseDSN, "d", "", "Строка с адресом подключения к БД")
+	flag.StringVar(&secret, "k", "", "Код для шифровки и дешифровки")
+	flag.BoolVar(&enableHTTPS, "s", false, "Активация HTTPS")
+	flag.StringVar(&configFile, "c", "", "Конфигурационный файл")
+	flag.Parse()
+
+	if address != "" {
+		cfg.Address = address
+	}
+
+	if baseURL != "" {
+		cfg.BaseURL = baseURL
+	}
+
+	if fileStoragePath != "" {
+		cfg.FileStoragePath = fileStoragePath
+	}
+
+	if databaseDSN != "" {
+		cfg.DatabaseDSN = databaseDSN
+	}
+
+	if secret != "" {
+		cfg.Secret = secret
+	}
+
+	if enableHTTPS {
+		cfg.EnableHTTPS = enableHTTPS
+	}
+
+	if configFile != "" {
+		cfg.ConfigFile = configFile
+	}
+
+	if err := readJSONConfig(cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readJSONConfig(cfg *Config) error {
+	if cfg.ConfigFile != "" {
+		configFile, err := os.Open(cfg.ConfigFile)
+		if err != nil {
+			return err
+		}
+
+		jsonParser := json.NewDecoder(configFile)
+		if err = jsonParser.Decode(cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createCert() error {
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject: pkix.Name{
+			Organization: []string{"Yandex.Praktikum"},
+			Country:      []string{"KZ"},
+		},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return err
+	}
+
+	var certPEM bytes.Buffer
+	pem.Encode(&certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	f, err := os.OpenFile("cert", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = certPEM.WriteTo(f)
+	if err != nil {
+		return err
+	}
+
+	var privateKeyPEM bytes.Buffer
+	pem.Encode(&privateKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+
+	f, err = os.OpenFile("key", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = privateKeyPEM.WriteTo(f)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
