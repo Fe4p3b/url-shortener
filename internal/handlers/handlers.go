@@ -43,8 +43,17 @@ func (h *handler) SetupAPIRouting() {
 
 	h.Router.Get("/user/urls", h.GetUserURLs)
 	h.Router.Delete("/api/user/urls", h.DeleteUserURLs)
+}
 
-	h.Router.Get("/api/internal/stats", h.GetStats)
+func (h *handler) SetupInternalRouting(IPs []string) {
+	r := chi.NewRouter()
+
+	t := middleware.NewTrustedNetworksOnlyMiddleware(IPs)
+
+	r.Use(t.Middleware)
+	r.Get("/stats", h.GetStats)
+
+	h.Router.Mount("/api/internal", r)
 }
 
 // SetupProfiling initializes http routes for profiling.

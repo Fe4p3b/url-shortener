@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -46,6 +47,7 @@ type Config struct {
 	Certfile        string `env:"CERTFILE" envDefault:"cert" json:"certfile_path"`
 	CertKey         string `env:"PRIVATE_KEY" envDefault:"key" json:"certkey_path"`
 	ConfigFile      string `env:"CONFIG" envDefault:"config/config.json"`
+	TrustedNetworks string `env:"TRUSTED_SUBNET" envDefault:"192.168.1.1" json:"trusted_subnet"`
 }
 
 func main() {
@@ -84,6 +86,7 @@ func main() {
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
 	h.SetupAPIRouting()
 	h.SetupProfiling()
+	h.SetupInternalRouting(strings.Fields(cfg.TrustedNetworks))
 
 	srv := &http.Server{Addr: cfg.Address, Handler: h.Router}
 
@@ -138,6 +141,7 @@ func setConfig(cfg *Config) error {
 		secret          string
 		enableHTTPS     bool
 		configFile      string
+		trustedNetworks string
 	)
 
 	flag.StringVar(&address, "a", "", "Адрес запуска HTTP-сервера")
@@ -147,6 +151,7 @@ func setConfig(cfg *Config) error {
 	flag.StringVar(&secret, "k", "", "Код для шифровки и дешифровки")
 	flag.BoolVar(&enableHTTPS, "s", false, "Активация HTTPS")
 	flag.StringVar(&configFile, "c", "", "Конфигурационный файл")
+	flag.StringVar(&trustedNetworks, "t", "", "IP-адресса доверенных сетей")
 	flag.Parse()
 
 	if address != "" {
@@ -175,6 +180,10 @@ func setConfig(cfg *Config) error {
 
 	if configFile != "" {
 		cfg.ConfigFile = configFile
+	}
+
+	if trustedNetworks != "" {
+		cfg.TrustedNetworks = trustedNetworks
 	}
 
 	if err := readJSONConfig(cfg); err != nil {
