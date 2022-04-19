@@ -15,7 +15,7 @@ import (
 var (
 	ErrorURLIsGone                   = errors.New("URL is gone")
 	ErrorUniqueURLViolation          = errors.New("URL already exists")
-	ErrorNoContent                   = errors.New("No Content")
+	ErrorNoContent                   = errors.New("no content")
 	_                       Handlers = &handler{}
 )
 

@@ -7,10 +7,11 @@ import (
 	pb "github.com/Fe4p3b/url-shortener/internal/handlers/grpc/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	conn, err := grpc.Dial(`:3200`, grpc.WithInsecure())
+	conn, err := grpc.Dial(`:3200`, insecure.NewCredentials())
 	if err != nil {
 		log.Fatal(err)
 	}
