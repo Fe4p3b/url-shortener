@@ -294,7 +294,7 @@ func (h *httpHandler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sURLBatch, err := h.s.StoreBatch(user, *batch)
+	sURLBatch, err := h.h.ShortenBatch(user, batch)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

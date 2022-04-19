@@ -3,14 +3,10 @@ package handlers
 
 import (
 	"errors"
-	"io"
-	"net/http"
 
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
-	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/models"
 	"github.com/Fe4p3b/url-shortener/internal/repositories"
-	"github.com/Fe4p3b/url-shortener/internal/serializers"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
@@ -28,6 +24,7 @@ type Handlers interface {
 	PostURL(u string, user string) (string, error)
 	GetUserURLs(user string) ([]repositories.URL, error)
 	DeleteUserURLs(user string, URLs []string)
+	ShortenBatch(user string, batch *[]repositories.URL) ([]repositories.URL, error)
 	Ping() error
 	GetStats() (*models.Stats, error)
 }
@@ -94,50 +91,13 @@ func (h *handler) DeleteUserURLs(user string, URLs []string) {
 }
 
 // ShortenBatch creates short URLs for batch of original URLs in json.
-func (h *handler) ShortenBatch(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(middleware.Key).(string)
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	s, err := serializers.GetSerializer("json")
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	batch := &[]repositories.URL{}
-	if err = s.Decode(b, batch); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
+func (h *handler) ShortenBatch(user string, batch *[]repositories.URL) ([]repositories.URL, error) {
 	sURLBatch, err := h.s.StoreBatch(user, *batch)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	b, err = s.Encode(sURLBatch)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(b)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+	return sURLBatch, nil
 }
 
 // Ping checks whether database connetion is up.

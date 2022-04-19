@@ -46,6 +46,16 @@ func main() {
 
 	log.Printf("delUserURLsResp %s\n", delUserURLsResp)
 
+	shortenBatchResp, err := c.ShortenBatch(context.Background(), &pb.ShortenBatchRequest{User: "ec16638d-8346-4746-b009-a846d19f4862", Urls: []*pb.URL{
+		{OriginalUrl: "http://google.kz", CorrelationId: "2765399b-d5a5-420c-8de4-f3b7fb19d334"},
+		{OriginalUrl: "http://hltv.org", CorrelationId: "2765f94b-d56e-420c-8de4-f3b7fb19d325"},
+	}})
+	if err != nil {
+		log.Printf("Error:%s", err)
+	}
+
+	log.Printf("shortenBatchResp %s\n", shortenBatchResp)
+
 	pingResp, err := c.Ping(context.Background(), &empty.Empty{})
 	if err != nil {
 		log.Printf("Error:%s", err)

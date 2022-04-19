@@ -8,7 +8,7 @@ package grpc;
 
 message URL {
     string correlation_id = 1;
-    string url = 2;
+    string original_url = 2;
     string short_url = 3;
     string user_id = 4;
     bool is_deleted = 5;
@@ -56,6 +56,16 @@ message DelUserURLsResponse {
     string error = 1;
 }
 
+message ShortenBatchRequest {
+    repeated URL urls = 1;
+    string user = 2;
+}
+
+message ShortenBatchResponse {
+    repeated URL urls = 1;
+    string errors = 2;
+}
+
 message PingResponse {
     string error = 1;
 }
@@ -70,6 +80,7 @@ service Shortener {
     rpc PostURL(PostURLRequest) returns (PostURLResponse);
     rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
     rpc DelUserURLs(DelUserURLsRequest) returns (DelUserURLsResponse);
+    rpc ShortenBatch(ShortenBatchRequest) returns (ShortenBatchResponse);
     rpc Ping(google.protobuf.Empty) returns (PingResponse);
     rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
 }

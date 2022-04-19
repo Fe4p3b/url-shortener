@@ -5,6 +5,7 @@ import (
 
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	pb "github.com/Fe4p3b/url-shortener/internal/handlers/grpc/proto"
+	"github.com/Fe4p3b/url-shortener/internal/repositories"
 	"github.com/golang/protobuf/ptypes/empty"
 )
 
@@ -53,7 +54,7 @@ func (s *ShortenerServer) GetUserURLs(ctx context.Context, in *pb.GetUserURLsReq
 	}
 
 	for _, v := range u {
-		response.Urls = append(response.Urls, &pb.URL{CorrelationId: v.CorrelationID, Url: v.URL, ShortUrl: v.ShortURL, UserId: v.UserID, IsDeleted: v.IsDeleted})
+		response.Urls = append(response.Urls, &pb.URL{CorrelationId: v.CorrelationID, OriginalUrl: v.URL, ShortUrl: v.ShortURL, UserId: v.UserID, IsDeleted: v.IsDeleted})
 	}
 	return &response, nil
 }
@@ -62,6 +63,26 @@ func (s *ShortenerServer) DelUserURLs(ctx context.Context, in *pb.DelUserURLsReq
 	var response pb.DelUserURLsResponse
 
 	s.h.DeleteUserURLs(in.User, in.Urls)
+
+	return &response, nil
+}
+
+func (s *ShortenerServer) ShortenBatch(ctx context.Context, in *pb.ShortenBatchRequest) (*pb.ShortenBatchResponse, error) {
+	var response pb.ShortenBatchResponse
+
+	batch := []repositories.URL{}
+	for _, v := range in.Urls {
+		batch = append(batch, repositories.URL{CorrelationID: v.CorrelationId, URL: v.OriginalUrl})
+	}
+
+	URLs, err := s.h.ShortenBatch(in.User, &batch)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range URLs {
+		response.Urls = append(response.Urls, &pb.URL{CorrelationId: v.CorrelationID, ShortUrl: v.ShortURL})
+	}
 
 	return &response, nil
 }
