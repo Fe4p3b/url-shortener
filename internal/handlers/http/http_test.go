@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
+	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/storage/memory"
 	"github.com/go-chi/chi/v5"
@@ -110,6 +111,7 @@ func Example() {
 func Test_handler_GetURL(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
+		h      handlers.Handlers
 		method string
 		url    string
 	}
@@ -123,6 +125,7 @@ func Test_handler_GetURL(t *testing.T) {
 		"asdf": "http://yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	tests := []struct {
 		name   string
@@ -133,6 +136,7 @@ func Test_handler_GetURL(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:      s,
+				h:      h,
 				method: http.MethodGet,
 				url:    "/asdf",
 			},
@@ -146,6 +150,7 @@ func Test_handler_GetURL(t *testing.T) {
 			name: "test case #2",
 			fields: fields{
 				s:      s,
+				h:      h,
 				method: http.MethodGet,
 				url:    "/qwerty",
 			},
@@ -159,6 +164,7 @@ func Test_handler_GetURL(t *testing.T) {
 			name: "test case #3",
 			fields: fields{
 				s:      s,
+				h:      h,
 				method: http.MethodGet,
 				url:    "/",
 			},
@@ -171,7 +177,7 @@ func Test_handler_GetURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, nil)
 			w := httptest.NewRecorder()
 
@@ -189,6 +195,7 @@ func Test_handler_GetURL(t *testing.T) {
 func Test_handler_PostURL(t *testing.T) {
 	type fields struct {
 		s      shortener.ShortenerService
+		h      handlers.Handlers
 		method string
 		url    string
 		body   string
@@ -203,6 +210,7 @@ func Test_handler_PostURL(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	tests := []struct {
 		name   string
@@ -213,6 +221,7 @@ func Test_handler_PostURL(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:      s,
+				h:      h,
 				method: http.MethodPost,
 				url:    "/",
 				body:   "https://yandex.ru",
@@ -227,6 +236,7 @@ func Test_handler_PostURL(t *testing.T) {
 			name: "test case #2",
 			fields: fields{
 				s:      s,
+				h:      h,
 				method: http.MethodPost,
 				url:    "/",
 				body:   "yandex.ru",
@@ -240,7 +250,7 @@ func Test_handler_PostURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -261,6 +271,7 @@ func Test_handler_PostURL(t *testing.T) {
 func Test_handler_JSONPost(t *testing.T) {
 	type fields struct {
 		s           shortener.ShortenerService
+		h           handlers.Handlers
 		method      string
 		url         string
 		body        string
@@ -277,6 +288,7 @@ func Test_handler_JSONPost(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	tests := []struct {
 		name   string
@@ -287,6 +299,7 @@ func Test_handler_JSONPost(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":"https://yandex.ru"}`,
@@ -303,6 +316,7 @@ func Test_handler_JSONPost(t *testing.T) {
 			name: "test case #2",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":"yandex.ru"}`,
@@ -319,6 +333,7 @@ func Test_handler_JSONPost(t *testing.T) {
 			name: "test case #3",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodPost,
 				url:         "/api/shorten",
 				body:        `{"url":""}`,
@@ -334,7 +349,7 @@ func Test_handler_JSONPost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/json")
@@ -358,9 +373,11 @@ func Test_handler_GetUserURLs(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	type fields struct {
 		s           shortener.ShortenerService
+		h           handlers.Handlers
 		method      string
 		url         string
 		body        string
@@ -382,6 +399,7 @@ func Test_handler_GetUserURLs(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodGet,
 				url:         "/user/urls",
 				body:        ``,
@@ -398,7 +416,7 @@ func Test_handler_GetUserURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -422,9 +440,11 @@ func Test_handler_DeleteUserURLs(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	type fields struct {
 		s           shortener.ShortenerService
+		h           handlers.Handlers
 		method      string
 		url         string
 		body        string
@@ -446,6 +466,7 @@ func Test_handler_DeleteUserURLs(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodDelete,
 				url:         "/api/user/urls",
 				body:        ``,
@@ -462,7 +483,7 @@ func Test_handler_DeleteUserURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -486,9 +507,11 @@ func Test_handler_ShortenBatch(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	type fields struct {
 		s           shortener.ShortenerService
+		h           handlers.Handlers
 		method      string
 		url         string
 		body        string
@@ -510,6 +533,7 @@ func Test_handler_ShortenBatch(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodPost,
 				url:         "/api/shorten/batch",
 				body:        ``,
@@ -526,7 +550,7 @@ func Test_handler_ShortenBatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -550,9 +574,11 @@ func Test_handler_Ping(t *testing.T) {
 		"asdf": "yandex.ru",
 	})
 	s := shortener.NewShortener(m, "http://localhost:8080")
+	h := handlers.NewHandler(s)
 
 	type fields struct {
 		s           shortener.ShortenerService
+		h           handlers.Handlers
 		method      string
 		url         string
 		body        string
@@ -574,6 +600,7 @@ func Test_handler_Ping(t *testing.T) {
 			name: "test case #1",
 			fields: fields{
 				s:           s,
+				h:           h,
 				method:      http.MethodPost,
 				url:         "/ping",
 				body:        ``,
@@ -590,7 +617,7 @@ func Test_handler_Ping(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.s)
+			h := NewHandler(tt.fields.h, tt.fields.s)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)

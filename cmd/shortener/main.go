@@ -24,11 +24,15 @@ import (
 	"github.com/Fe4p3b/url-shortener/internal/app/auth"
 	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
+	grpcHandler "github.com/Fe4p3b/url-shortener/internal/handlers/grpc"
+	pb "github.com/Fe4p3b/url-shortener/internal/handlers/grpc/proto"
+	httpHandler "github.com/Fe4p3b/url-shortener/internal/handlers/http"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/storage/file"
 	"github.com/Fe4p3b/url-shortener/internal/storage/pg"
 	env "github.com/caarlos0/env/v6"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -82,17 +86,31 @@ func main() {
 	}
 	authMiddleware := middleware.NewAuthMiddleware(auth)
 
-	h := handlers.NewHandler(s)
+	handlers := handlers.NewHandler(s)
+
+	h := httpHandler.NewHandler(handlers, s)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
 	h.SetupAPIRouting()
 	h.SetupProfiling()
 	h.SetupInternalRouting(strings.Fields(cfg.TrustedNetworks))
+
+	listen, err := net.Listen("tcp", ":3200")
+	if err != nil {
+		log.Fatal(err)
+	}
+	grpcServer := grpc.NewServer()
+	shortenerServer := grpcHandler.NewShortenerServer(handlers)
+	pb.RegisterShortenerServer(grpcServer, shortenerServer)
 
 	srv := &http.Server{Addr: cfg.Address, Handler: h.Router}
 
 	errgroup, ctx := errgroup.WithContext(context.Background())
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
+
+	errgroup.Go(func() error {
+		return grpcServer.Serve(listen)
+	})
 
 	errgroup.Go(func() error {
 		if cfg.EnableHTTPS {
@@ -118,6 +136,8 @@ func main() {
 		log.Println("Shutting down server gracefully")
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
+
+		grpcServer.GracefulStop()
 
 		return srv.Shutdown(ctx)
 	})

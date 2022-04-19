@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+option go_package = "github.com/Fe4p3b/url-shortener/internal/handlers/grpc/proto";
+
+import "google/protobuf/empty.proto";
+
+package grpc;
+
+message URL {
+    string correlation_id = 1;
+    string url = 2;
+    string short_url = 3;
+    string user_id = 4;
+    bool is_deleted = 5;
+}
+
+message Stats {
+    uint64 urls = 1;
+    uint64 users = 2;
+}
+
+message GetURLRequest {
+    string short_url = 1;
+}
+
+message GetURLResponse {
+    string original_url = 1;
+    string error = 2;
+}
+
+message PostURLRequest {
+    string original_url = 1;
+    string user = 2;
+}
+
+message PostURLResponse {
+    string short_url = 1;
+    string error = 2;
+}
+
+message GetUserURLsRequest {
+    string user = 1;
+}
+
+message GetUserURLsResponse {
+    repeated URL urls = 1;
+    string error = 2;
+}
+
+message DelUserURLsRequest {
+    string user = 1;
+    repeated string urls = 2;
+}
+
+message DelUserURLsResponse {
+    string error = 1;
+}
+
+message PingResponse {
+    string error = 1;
+}
+
+message GetStatsResponse {
+    Stats stats = 1;
+    string error = 2;
+}
+
+service Shortener {
+    rpc GetURL(GetURLRequest) returns (GetURLResponse);
+    rpc PostURL(PostURLRequest) returns (PostURLResponse);
+    rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
+    rpc DelUserURLs(DelUserURLsRequest) returns (DelUserURLsResponse);
+    rpc Ping(google.protobuf.Empty) returns (PingResponse);
+    rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
+}
