@@ -88,7 +88,7 @@ func main() {
 
 	handlers := handlers.NewHandler(s)
 
-	h := httpHandler.NewHandler(handlers, s)
+	h := httpHandler.NewHandler(handlers)
 	h.Router.Use(middleware.GZIPReaderMiddleware, middleware.GZIPWriterMiddleware, authMiddleware.Middleware)
 	h.SetupAPIRouting()
 	h.SetupProfiling()

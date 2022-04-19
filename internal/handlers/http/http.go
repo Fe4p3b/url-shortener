@@ -8,7 +8,6 @@ import (
 	"net/http/pprof"
 	"net/url"
 
-	"github.com/Fe4p3b/url-shortener/internal/app/shortener"
 	"github.com/Fe4p3b/url-shortener/internal/handlers"
 	"github.com/Fe4p3b/url-shortener/internal/middleware"
 	"github.com/Fe4p3b/url-shortener/internal/models"
@@ -20,11 +19,10 @@ import (
 // handler provides handlers for http endpoints.
 type httpHandler struct {
 	Router *chi.Mux
-	s      shortener.ShortenerService
 	h      handlers.Handlers
 }
 
-func NewHandler(h handlers.Handlers, s shortener.ShortenerService) *httpHandler {
+func NewHandler(h handlers.Handlers) *httpHandler {
 	return &httpHandler{
 		Router: chi.NewRouter(),
 		h:      h,

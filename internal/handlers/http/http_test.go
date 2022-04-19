@@ -177,7 +177,7 @@ func Test_handler_GetURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, nil)
 			w := httptest.NewRecorder()
 
@@ -250,7 +250,7 @@ func Test_handler_PostURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -349,7 +349,7 @@ func Test_handler_JSONPost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", "application/json")
@@ -416,7 +416,7 @@ func Test_handler_GetUserURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -483,7 +483,7 @@ func Test_handler_DeleteUserURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -550,7 +550,7 @@ func Test_handler_ShortenBatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
@@ -617,7 +617,7 @@ func Test_handler_Ping(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewHandler(tt.fields.h, tt.fields.s)
+			h := NewHandler(tt.fields.h)
 
 			request := httptest.NewRequest(tt.fields.method, tt.fields.url, strings.NewReader(tt.fields.body))
 			request.Header.Set("Content-Type", tt.fields.contentType)
