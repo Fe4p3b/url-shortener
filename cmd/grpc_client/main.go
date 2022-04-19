@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	conn, err := grpc.Dial(`:3200`, insecure.NewCredentials())
+	conn, err := grpc.Dial(`:3200`, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
