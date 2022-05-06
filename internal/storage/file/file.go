@@ -122,3 +122,7 @@ func (f *file) AddURLToDelete(u repositories.URL) {
 func (f *file) FlushToDelete() error {
 	return storage.ErrorMethodIsNotImplemented
 }
+
+func (f *file) GetStats() (*models.Stats, error) {
+	return nil, storage.ErrorMethodIsNotImplemented
+}

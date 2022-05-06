@@ -172,6 +172,7 @@ func (p *pg) Flush() error {
 
 	for _, v := range p.buffer {
 		if _, err := stmt.Exec(v.CorrelationID, v.ShortURL, v.URL, v.UserID); err != nil {
+			p.buffer = p.buffer[:0]
 			if err = tx.Rollback(); err != nil {
 				return err
 			}
@@ -264,4 +265,25 @@ func (p *pg) VerifyUser(user string) error {
 	}
 
 	return nil
+}
+
+func (p *pg) GetStats() (*models.Stats, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stats := &models.Stats{}
+
+	sql := `SELECT COUNT(short_url) FROM shortener.shortener`
+	row := p.db.QueryRowContext(ctx, sql)
+	if err := row.Scan(&stats.URLs); err != nil {
+		return nil, err
+	}
+
+	sql = `SELECT COUNT(*) FROM shortener.users`
+	row = p.db.QueryRowContext(ctx, sql)
+	if err := row.Scan(&stats.Users); err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }

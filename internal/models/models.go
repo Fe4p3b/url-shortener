@@ -19,3 +19,8 @@ type URL struct {
 type ShortURL struct {
 	ShortURL string `json:"result"`
 }
+
+type Stats struct {
+	URLs  uint `json:"urls"`
+	Users uint `json:"users"`
+}
